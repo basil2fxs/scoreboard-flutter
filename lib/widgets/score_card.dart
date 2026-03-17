@@ -80,24 +80,42 @@ class _EditableScore extends StatefulWidget {
 
 class _EditableScoreState extends State<_EditableScore> {
   late TextEditingController _ctrl;
+  late FocusNode _focus;
+
   @override
   void initState() {
     super.initState();
     _ctrl = TextEditingController(text: '${widget.value}');
+    _focus = FocusNode();
+    _focus.addListener(() {
+      // When focus is lost, restore to current value if field was cleared
+      if (!_focus.hasFocus && _ctrl.text.isEmpty) {
+        _ctrl.text = '${widget.value}';
+      }
+    });
   }
+
   @override
   void didUpdateWidget(_EditableScore old) {
     super.didUpdateWidget(old);
-    if (old.value != widget.value && !_ctrl.selection.isValid) {
+    // Sync display when value changes externally and field is not focused
+    if (old.value != widget.value && !_focus.hasFocus) {
       _ctrl.text = '${widget.value}';
     }
   }
+
   @override
-  void dispose() { _ctrl.dispose(); super.dispose(); }
+  void dispose() {
+    _focus.dispose();
+    _ctrl.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return TextField(
       controller: _ctrl,
+      focusNode: _focus,
       textAlign: TextAlign.center,
       keyboardType: TextInputType.number,
       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -117,7 +135,12 @@ class _EditableScoreState extends State<_EditableScore> {
       ),
       onSubmitted: (v) => widget.onSubmit(int.tryParse(v) ?? widget.value),
       onEditingComplete: () {
-        widget.onSubmit(int.tryParse(_ctrl.text) ?? widget.value);
+        // Restore if blank, otherwise submit
+        if (_ctrl.text.isEmpty) {
+          _ctrl.text = '${widget.value}';
+        } else {
+          widget.onSubmit(int.tryParse(_ctrl.text) ?? widget.value);
+        }
         FocusScope.of(context).unfocus();
       },
     );

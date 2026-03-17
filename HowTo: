@@ -1,0 +1,16 @@
+Commits:
+
+
+git add -A
+git commit -m "describe what changed"
+git push
+
+
+Run:
+
+cd "/Users/basiltoufexis/Desktop/TF-F6 App/scoreboard_flutter"
+flutter clean
+flutter pub get
+flutter run
+
+

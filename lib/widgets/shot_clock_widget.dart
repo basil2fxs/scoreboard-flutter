@@ -83,6 +83,9 @@ class ShotClockWidget extends StatelessWidget {
     final secsCtrl =
         TextEditingController(text: initSecs.toString());
 
+    // Validation error string — lives in closure across setState calls
+    String? secsError;
+
     // Common quick-set values (seconds)
     final chips = sport == 'Hockey'
         ? [20, 30, 40, 60]
@@ -99,7 +102,7 @@ class ShotClockWidget extends StatelessWidget {
         builder: (ctx, setState) {
           void applyQuick(int s) {
             secsCtrl.text = s.toString();
-            setState(() {});
+            setState(() { secsError = null; });
           }
 
           return Padding(
@@ -152,10 +155,12 @@ class ShotClockWidget extends StatelessWidget {
                     color: Colors.white,
                     fontFeatures: [FontFeature.tabularFigures()],
                   ),
+                  onChanged: (_) => setState(() => secsError = null),
                   decoration: InputDecoration(
                     labelText: 'SECONDS',
                     labelStyle: const TextStyle(
                         fontSize: 12, color: AppColors.textMuted),
+                    errorText: secsError,
                     filled: true,
                     fillColor: AppColors.background,
                     border: OutlineInputBorder(
@@ -194,6 +199,11 @@ class ShotClockWidget extends StatelessWidget {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
+                      // Validate: field must not be blank
+                      if (secsCtrl.text.trim().isEmpty) {
+                        setState(() => secsError = 'Enter seconds');
+                        return; // stay open
+                      }
                       final s = int.tryParse(secsCtrl.text) ?? initSecs;
                       if (s > 0) {
                         context

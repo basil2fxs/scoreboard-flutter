@@ -116,6 +116,10 @@ class TimerWidget extends StatelessWidget {
     final secsCtrl = TextEditingController(
         text: initSecs.toString().padLeft(2, '0'));
 
+    // Validation error strings — live across setState calls via closure
+    String? minsError;
+    String? secsError;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -128,7 +132,7 @@ class TimerWidget extends StatelessWidget {
           void applyQuick(int totalSeconds) {
             minsCtrl.text = (totalSeconds ~/ 60).toString().padLeft(2, '0');
             secsCtrl.text = (totalSeconds % 60).toString().padLeft(2, '0');
-            setState(() {});
+            setState(() { minsError = null; secsError = null; });
           }
 
           return Padding(
@@ -255,7 +259,9 @@ class TimerWidget extends StatelessWidget {
                             color: Colors.white,
                             fontFeatures: [FontFeature.tabularFigures()],
                           ),
-                          decoration: _timeFieldDecoration('MIN'),
+                          onChanged: (_) => setState(() => minsError = null),
+                          decoration: _timeFieldDecoration('MIN')
+                              .copyWith(errorText: minsError),
                         ),
                       ),
                       const Padding(
@@ -281,7 +287,9 @@ class TimerWidget extends StatelessWidget {
                             color: Colors.white,
                             fontFeatures: [FontFeature.tabularFigures()],
                           ),
-                          decoration: _timeFieldDecoration('SEC'),
+                          onChanged: (_) => setState(() => secsError = null),
+                          decoration: _timeFieldDecoration('SEC')
+                              .copyWith(errorText: secsError),
                         ),
                       ),
                     ],
@@ -338,6 +346,18 @@ class TimerWidget extends StatelessWidget {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
+                      // Validate: countdown requires both fields filled
+                      if (countdown) {
+                        final mBlank = minsCtrl.text.trim().isEmpty;
+                        final sBlank = secsCtrl.text.trim().isEmpty;
+                        if (mBlank || sBlank) {
+                          setState(() {
+                            minsError = mBlank ? 'Enter minutes' : null;
+                            secsError = sBlank ? 'Enter seconds' : null;
+                          });
+                          return; // stay open
+                        }
+                      }
                       final m = int.tryParse(minsCtrl.text) ?? 0;
                       final s =
                           (int.tryParse(secsCtrl.text) ?? 0).clamp(0, 59);
