@@ -1,0 +1,35 @@
+name: scoreboard_flutter
+description: Professional LED Scoreboard Controller for TF-F6 display systems.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+  flutter: '>=3.19.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management
+  provider: ^6.1.2
+
+  # Persistent storage
+  shared_preferences: ^2.3.1
+
+  # UDP networking
+  udp: ^5.0.3
+
+  # Icons
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  # Add fonts or assets here if needed in future
+  # assets:
+  #   - assets/images/

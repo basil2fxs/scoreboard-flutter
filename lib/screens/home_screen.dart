@@ -1,0 +1,692 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../providers/app_provider.dart';
+import '../theme/app_theme.dart';
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  // ── Secret bypass reveal ──────────────────────────────────────────────────
+  bool   _bypassRevealed = false;
+  Timer? _holdTimer;
+
+  @override
+  void dispose() {
+    _holdTimer?.cancel();
+    super.dispose();
+  }
+
+  void _onResetHoldStart() {
+    _holdTimer?.cancel();
+    _holdTimer = Timer(const Duration(seconds: 5), () {
+      if (mounted) setState(() => _bypassRevealed = !_bypassRevealed);
+    });
+  }
+
+  void _onResetHoldEnd() {
+    _holdTimer?.cancel();
+    _holdTimer = null;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+
+  @override
+  Widget build(BuildContext context) {
+    final app = context.watch<AppProvider>();
+
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(height: 32),
+
+              // ── Title ──────────────────────────────────────────────────────
+              const Text(
+                'Scoreboard Control',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 34,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Professional LED Display Management',
+                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+              ),
+              const SizedBox(height: 28),
+
+              // ── Connection button (unified status + connect action) ─────────
+              _ConnectionBtn(
+                status: app.connStatus,
+                onTap  : () => app.testConnection(),
+              ),
+              const SizedBox(height: 14),
+
+              // ── Select Sport ─────────────────────────────────────────────────
+              _HomeBtn(
+                label  : '🏆  Select Sport',
+                color  : AppColors.accentDark,
+                enabled: app.isConnected,
+                onTap  : () => Navigator.pushNamed(context, '/sportSelection'),
+              ),
+              const SizedBox(height: 14),
+
+              // ── Manage Scores ────────────────────────────────────────────────
+              _HomeBtn(
+                label  : _manageLabel(app.config.currentSport),
+                color  : AppColors.success,
+                enabled: app.isConnected && app.config.currentSport != null,
+                onTap  : () => _goToSport(context, app.config.currentSport),
+              ),
+
+              const Spacer(),
+
+              // ── Bottom area ───────────────────────────────────────────────────
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+
+                  // ── LEFT: New Ad button (front) / Bypass switch (hidden) ─────
+                  SizedBox(
+                    height: 44,
+                    child: Stack(
+                      alignment: Alignment.centerLeft,
+                      children: [
+                        // Bypass switch — underneath, revealed by 5s hold on Reset
+                        AnimatedOpacity(
+                          opacity : _bypassRevealed ? 1.0 : 0.0,
+                          duration: const Duration(milliseconds: 250),
+                          child: IgnorePointer(
+                            ignoring: !_bypassRevealed,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Switch(
+                                  value   : app.bypassMode,
+                                  onChanged: (v) => app.enableBypass(v),
+                                  activeColor: AppColors.warning,
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                const Text('Bypass',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.textMuted)),
+                              ],
+                            ),
+                          ),
+                        ),
+                        // New Ad button — on top by default
+                        AnimatedOpacity(
+                          opacity : _bypassRevealed ? 0.0 : 1.0,
+                          duration: const Duration(milliseconds: 250),
+                          child: IgnorePointer(
+                            ignoring: _bypassRevealed,
+                            child: ElevatedButton.icon(
+                              onPressed: app.isConnected
+                                  ? () => Navigator.pushNamed(
+                                      context, '/adEditor')
+                                  : null,
+                              icon : const Icon(Icons.add, size: 16),
+                              label: const Text('New Ad'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: app.isConnected
+                                    ? AppColors.accent
+                                    : AppColors.surfaceHigh,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 10),
+                                textStyle: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold),
+                                elevation: 0,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // ── RIGHT: Screen size chip + Reset Settings ──────────────────
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Screen size button
+                      GestureDetector(
+                        onTap: () => _showScreenSizeDialog(context, app),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceHigh,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                                color: AppColors.surfaceBorder),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.monitor,
+                                  size: 13,
+                                  color: AppColors.textMuted),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${app.config.displayWidth ?? 128}'
+                                '×${app.config.displayHeight ?? 64}',
+                                style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      // Reset Settings: tap = dialog, 5s hold = reveal/hide bypass
+                      GestureDetector(
+                        onTap         : () => _confirmReset(context, app),
+                        onLongPressStart: (_) => _onResetHoldStart(),
+                        onLongPressEnd  : (_) => _onResetHoldEnd(),
+                        onLongPressCancel: _onResetHoldEnd,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 4, vertical: 6),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: const [
+                              Icon(Icons.warning_amber_rounded,
+                                  size: 14,
+                                  color: AppColors.danger),
+                              SizedBox(width: 4),
+                              Text('Reset Settings',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.danger)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 4),
+              const Text(
+                'iCatcher Digital Signs  •  v1.0',
+                style: TextStyle(fontSize: 10, color: AppColors.textMuted),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─── Helpers ──────────────────────────────────────────────────────────────
+
+  String _manageLabel(String? sport) {
+    if (sport == null) return '⚽  Manage Scores';
+    const icons = {
+      'AFL'       : '🦘', 'Soccer'    : '⚽',
+      'Cricket'   : '🏏', 'Rugby'     : '🏉',
+      'Hockey'    : '🏒', 'Basketball': '🏀',
+    };
+    return '${icons[sport] ?? '🏅'}  Manage $sport Scores';
+  }
+
+  void _goToSport(BuildContext ctx, String? sport) {
+    if (sport == null) return;
+    ctx.read<AppProvider>().sendSportProgram();
+    const routes = {
+      'Soccer'    : '/soccer',
+      'AFL'       : '/afl',
+      'Cricket'   : '/cricket',
+      'Rugby'     : '/simple',
+      'Hockey'    : '/simple',
+      'Basketball': '/simple',
+    };
+    Navigator.pushNamed(ctx, routes[sport] ?? '/simple');
+  }
+
+  Future<void> _confirmReset(BuildContext ctx, AppProvider app) async {
+    final ok = await showDialog<bool>(
+      context: ctx,
+      builder: (d) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text('Reset All Settings'),
+        content: const Text(
+          'This will erase ALL saved settings:\n\n'
+          '• Sport selection\n'
+          '• Team names and scores\n'
+          '• Timer and display settings\n'
+          '• Advertisements\n\n'
+          'Are you sure?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(d, false),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(d, true),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.danger),
+            child: const Text('Reset'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await app.resetToDefaults();
+      if (mounted) setState(() => _bypassRevealed = false);
+    }
+  }
+
+  void _showScreenSizeDialog(BuildContext ctx, AppProvider app) {
+    showDialog(
+      context: ctx,
+      builder: (d) => _ScreenSizeDialog(
+        currentWidth        : app.config.displayWidth    ?? 128,
+        currentHeight       : app.config.displayHeight   ?? 64,
+        currentSingleColour : app.config.singleColour,
+        currentUltraWide    : app.config.ultraWide,
+        onSave: (w, h, sc, uw) {
+          app.setDisplaySize(w, h);
+          app.setSingleColour(sc);
+          app.setUltraWide(uw);
+          Navigator.pop(d);
+        },
+      ),
+    );
+  }
+}
+
+// ─── Connection button ────────────────────────────────────────────────────────
+
+class _ConnectionBtn extends StatelessWidget {
+  final ConnectionStatus status;
+  final VoidCallback onTap;
+  const _ConnectionBtn({required this.status, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    switch (status) {
+      case ConnectionStatus.disconnected:
+        return _HomeBtn(
+          label  : '🔌  Connect to Controller',
+          color  : AppColors.success,
+          enabled: true,
+          onTap  : onTap,
+        );
+
+      case ConnectionStatus.connecting:
+        return _HomeBtn(
+          label  : '◌  Testing connection...',
+          color  : AppColors.surface,
+          enabled: false,
+          onTap  : onTap,
+        );
+
+      case ConnectionStatus.connected:
+        return _StatusBanner(
+          dot        : '●',
+          text       : 'Connected to Scoreboard',
+          dotColor   : AppColors.successBright,
+          textColor  : AppColors.successBright,
+          bgColor    : const Color(0xFF0A3A0A),
+          borderColor: AppColors.successBright,
+        );
+
+      case ConnectionStatus.bypass:
+        return _StatusBanner(
+          dot        : '●',
+          text       : 'Bypass Mode (No Connection)',
+          dotColor   : AppColors.warning,
+          textColor  : AppColors.warning,
+          bgColor    : const Color(0xFF3A2A00),
+          borderColor: AppColors.warning,
+        );
+    }
+  }
+}
+
+class _StatusBanner extends StatelessWidget {
+  final String dot, text;
+  final Color dotColor, textColor, bgColor, borderColor;
+  const _StatusBanner({
+    required this.dot,
+    required this.text,
+    required this.dotColor,
+    required this.textColor,
+    required this.bgColor,
+    required this.borderColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding:
+          const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor.withOpacity(0.4)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('$dot  ',
+              style: TextStyle(
+                  color     : dotColor,
+                  fontSize  : 16,
+                  fontWeight: FontWeight.bold)),
+          Flexible(
+            child: Text(text,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    color     : textColor,
+                    fontSize  : 16,
+                    fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Screen size dialog ───────────────────────────────────────────────────────
+
+class _ScreenSizeDialog extends StatefulWidget {
+  final int currentWidth, currentHeight;
+  final bool currentSingleColour, currentUltraWide;
+  final void Function(int w, int h, bool singleColour, bool ultraWide) onSave;
+  const _ScreenSizeDialog({
+    required this.currentWidth,
+    required this.currentHeight,
+    required this.currentSingleColour,
+    required this.currentUltraWide,
+    required this.onSave,
+  });
+
+  @override
+  State<_ScreenSizeDialog> createState() => _ScreenSizeDlgState();
+}
+
+class _ScreenSizeDlgState extends State<_ScreenSizeDialog> {
+  late final TextEditingController _wCtrl;
+  late final TextEditingController _hCtrl;
+  late bool _singleColour;
+  late bool _ultraWide;
+
+  @override
+  void initState() {
+    super.initState();
+    _wCtrl = TextEditingController(text: '${widget.currentWidth}');
+    _hCtrl = TextEditingController(text: '${widget.currentHeight}');
+    _singleColour = widget.currentSingleColour;
+    _ultraWide    = widget.currentUltraWide;
+  }
+
+  @override
+  void dispose() {
+    _wCtrl.dispose();
+    _hCtrl.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final w = int.tryParse(_wCtrl.text.trim()) ?? widget.currentWidth;
+    final h = int.tryParse(_hCtrl.text.trim()) ?? widget.currentHeight;
+    if (w < 32 || w > 512 || h < 16 || h > 256) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Width: 32–512  •  Height: 16–256'),
+        backgroundColor: AppColors.danger,
+      ));
+      return;
+    }
+    widget.onSave(w, h, _singleColour, _ultraWide);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: AppColors.surface,
+      title: const Text('Display Settings'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Set pixel dimensions and display type.',
+              style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            // ── Dimensions ─────────────────────────────────────────────
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _wCtrl,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText : 'Width (px)',
+                      filled    : true,
+                      fillColor : AppColors.surfaceHigh,
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  child: Text('×',
+                      style: TextStyle(fontSize: 22, color: AppColors.textMuted)),
+                ),
+                Expanded(
+                  child: TextField(
+                    controller: _hCtrl,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText : 'Height (px)',
+                      filled    : true,
+                      fillColor : AppColors.surfaceHigh,
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            // ── Display Type ───────────────────────────────────────────
+            const Text('DISPLAY TYPE',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold,
+                    color: AppColors.textMuted, letterSpacing: 0.8)),
+            const SizedBox(height: 8),
+            Row(children: [
+              _DlgChip(
+                label: 'Multi-Colour',
+                selected: !_singleColour,
+                onTap: () => setState(() => _singleColour = false),
+              ),
+              const SizedBox(width: 8),
+              _DlgChip(
+                label: 'Single Colour',
+                selected: _singleColour,
+                onTap: () => setState(() => _singleColour = true),
+              ),
+            ]),
+            const SizedBox(height: 16),
+            // ── Ultra Large Screen ─────────────────────────────────────
+            const Text('ULTRA LARGE SCREEN',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold,
+                    color: AppColors.textMuted, letterSpacing: 0.8)),
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceHigh,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                    color: _ultraWide
+                        ? AppColors.warning.withOpacity(0.5)
+                        : AppColors.surfaceBorder),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Ultra Large Screen',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: _ultraWide ? AppColors.warning : Colors.white,
+                          ),
+                        ),
+                      ),
+                      Switch(
+                        value: _ultraWide,
+                        onChanged: (v) => setState(() => _ultraWide = v),
+                        activeColor: AppColors.warning,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ],
+                  ),
+                  if (_ultraWide) ...[
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.warning.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.warning_amber_rounded,
+                              size: 13, color: AppColors.warning),
+                          SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'Only select if been instructed to select.',
+                              style: TextStyle(fontSize: 11, color: AppColors.warning),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: _save,
+          style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
+          child: const Text('Save'),
+        ),
+      ],
+    );
+  }
+}
+
+class _DlgChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _DlgChip({required this.label, required this.selected, required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 9),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.accent : AppColors.surfaceHigh,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+                color: selected ? AppColors.accent : AppColors.surfaceBorder),
+          ),
+          child: Center(
+            child: Text(label,
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: selected ? Colors.white : AppColors.textSecondary)),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Shared home button ────────────────────────────────────────────────────────
+
+class _HomeBtn extends StatelessWidget {
+  final String label;
+  final Color color;
+  final bool enabled;
+  final VoidCallback onTap;
+  const _HomeBtn({
+    required this.label,
+    required this.color,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: AnimatedOpacity(
+        opacity : enabled ? 1.0 : 0.4,
+        duration: const Duration(milliseconds: 200),
+        child: ElevatedButton(
+          onPressed: enabled ? onTap : null,
+          style: ElevatedButton.styleFrom(
+            backgroundColor        : color,
+            disabledBackgroundColor: AppColors.surface,
+            padding: const EdgeInsets.symmetric(vertical: 18),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12)),
+            textStyle: const TextStyle(
+                fontSize: 17, fontWeight: FontWeight.bold),
+            elevation: 0,
+          ),
+          child:
+              Text(label, style: const TextStyle(color: Colors.white)),
+        ),
+      ),
+    );
+  }
+}
