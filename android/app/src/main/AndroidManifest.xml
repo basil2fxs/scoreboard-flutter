@@ -20,6 +20,14 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+            <!-- Disable Impeller/Vulkan: fixes "Unrecognized pixel format",
+                 "GraphicBuffer allocation failed", and "AHardwareBuffer failed"
+                 on devices with incomplete Vulkan driver support.
+                 Falls back to the stable Skia/OpenGL renderer. -->
+            <meta-data
+              android:name="io.flutter.embedding.android.EnableImpeller"
+              android:value="false"
+              />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>

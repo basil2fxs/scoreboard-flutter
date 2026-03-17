@@ -106,305 +106,256 @@ class TimerWidget extends StatelessWidget {
 
   /// Shows the Set Time bottom sheet.
   void _showSetTimeDialog(BuildContext context, AppProvider app) {
-    bool countdown = app.config.timerCountdown;
-    final targetSecs = app.config.timerCountdown ? app.config.timerTargetSeconds : 0;
-    final initMins = targetSecs ~/ 60;
-    final initSecs = targetSecs % 60;
-
-    final minsCtrl = TextEditingController(
-        text: initMins.toString().padLeft(2, '0'));
-    final secsCtrl = TextEditingController(
-        text: initSecs.toString().padLeft(2, '0'));
-
-    // Validation error strings — live across setState calls via closure
-    String? minsError;
-    String? secsError;
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      isDismissible: false,
+      enableDrag: false,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setState) {
-          void applyQuick(int totalSeconds) {
-            minsCtrl.text = (totalSeconds ~/ 60).toString().padLeft(2, '0');
-            secsCtrl.text = (totalSeconds % 60).toString().padLeft(2, '0');
-            setState(() { minsError = null; secsError = null; });
-          }
+      // Proper StatefulWidget — has real mounted checks and correct
+      // InheritedElement dependency cleanup, preventing the
+      // 'dependents.isEmpty' assertion that StatefulBuilder can trigger
+      // when MediaQuery changes during sheet dismissal.
+      builder: (_) => _SetTimerSheet(app: app),
+    );
+  }
+}
 
-          return Padding(
-            padding: EdgeInsets.fromLTRB(
-                20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Handle
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceBorder,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Set Timer',
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white),
-                ),
-                const SizedBox(height: 20),
+// ─── Set Timer sheet (proper StatefulWidget to avoid StatefulBuilder bugs) ────
 
-                // ── Count Up / Count Down toggle ──────────────────────────
-                Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => countdown = false),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            color: !countdown
-                                ? AppColors.success
-                                : AppColors.surfaceHigh,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Column(
-                            children: [
-                              Icon(Icons.trending_up,
-                                  size: 20,
-                                  color: !countdown
-                                      ? Colors.white
-                                      : AppColors.textMuted),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Count Up',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                  color: !countdown
-                                      ? Colors.white
-                                      : AppColors.textMuted,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => countdown = true),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            color: countdown
-                                ? AppColors.warning
-                                : AppColors.surfaceHigh,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Column(
-                            children: [
-                              Icon(Icons.trending_down,
-                                  size: 20,
-                                  color: countdown
-                                      ? Colors.white
-                                      : AppColors.textMuted),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Count Down',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                  color: countdown
-                                      ? Colors.white
-                                      : AppColors.textMuted,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
+class _SetTimerSheet extends StatefulWidget {
+  final AppProvider app;
+  const _SetTimerSheet({required this.app});
+  @override
+  State<_SetTimerSheet> createState() => _SetTimerSheetState();
+}
 
-                // ── Time inputs (countdown only) ──────────────────────────
-                if (countdown) ...[
-                  const _SectionLabel('Start Time'),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: minsCtrl,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly
-                          ],
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            fontFeatures: [FontFeature.tabularFigures()],
-                          ),
-                          onChanged: (_) => setState(() => minsError = null),
-                          decoration: _timeFieldDecoration('MIN')
-                              .copyWith(errorText: minsError),
-                        ),
-                      ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 14),
-                        child: Text(':',
-                            style: TextStyle(
-                                fontSize: 36,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white)),
-                      ),
-                      Expanded(
-                        child: TextField(
-                          controller: secsCtrl,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            _MaxValueFormatter(59),
-                          ],
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            fontFeatures: [FontFeature.tabularFigures()],
-                          ),
-                          onChanged: (_) => setState(() => secsError = null),
-                          decoration: _timeFieldDecoration('SEC')
-                              .copyWith(errorText: secsError),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  const _SectionLabel('Quick Set'),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _QuickChip(
-                          label: '10:00',
-                          onTap: () => applyQuick(10 * 60)),
-                      _QuickChip(
-                          label: '12:00',
-                          onTap: () => applyQuick(12 * 60)),
-                      _QuickChip(
-                          label: '15:00',
-                          onTap: () => applyQuick(15 * 60)),
-                      _QuickChip(
-                          label: '20:00',
-                          onTap: () => applyQuick(20 * 60)),
-                      _QuickChip(
-                          label: '25:00',
-                          onTap: () => applyQuick(25 * 60)),
-                      _QuickChip(
-                          label: '45:00',
-                          onTap: () => applyQuick(45 * 60)),
-                    ],
-                  ),
-                ] else ...[
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceHigh,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.info_outline,
-                            size: 16, color: AppColors.textMuted),
-                        SizedBox(width: 8),
-                        Text('Timer will count up from 00:00',
-                            style: TextStyle(
-                                color: AppColors.textMuted, fontSize: 13)),
-                      ],
-                    ),
-                  ),
-                ],
+class _SetTimerSheetState extends State<_SetTimerSheet> {
+  late bool _countdown;
+  late TextEditingController _minsCtrl;
+  late TextEditingController _secsCtrl;
+  String? _minsError;
+  String? _secsError;
 
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      // Validate: countdown requires both fields filled
-                      if (countdown) {
-                        final mBlank = minsCtrl.text.trim().isEmpty;
-                        final sBlank = secsCtrl.text.trim().isEmpty;
-                        if (mBlank || sBlank) {
-                          setState(() {
-                            minsError = mBlank ? 'Enter minutes' : null;
-                            secsError = sBlank ? 'Enter seconds' : null;
-                          });
-                          return; // stay open
-                        }
-                      }
-                      final m = int.tryParse(minsCtrl.text) ?? 0;
-                      final s =
-                          (int.tryParse(secsCtrl.text) ?? 0).clamp(0, 59);
-                      final total = m * 60 + s;
-                      context.read<AppProvider>().setTimerTime(
-                            countdown: countdown,
-                            totalSeconds: countdown ? total : 0,
-                          );
-                      Navigator.pop(ctx);
-                    },
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.accent),
-                    child: const Text('Set & Reset Timer',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    ).then((_) {
-      minsCtrl.dispose();
-      secsCtrl.dispose();
-    });
+  @override
+  void initState() {
+    super.initState();
+    _countdown = widget.app.config.timerCountdown;
+    final targetSecs = _countdown ? widget.app.config.timerTargetSeconds : 0;
+    _minsCtrl = TextEditingController(
+        text: (targetSecs ~/ 60).toString().padLeft(2, '0'));
+    _secsCtrl = TextEditingController(
+        text: (targetSecs % 60).toString().padLeft(2, '0'));
   }
 
-  InputDecoration _timeFieldDecoration(String label) => InputDecoration(
-        labelText: label,
-        labelStyle:
-            const TextStyle(fontSize: 12, color: AppColors.textMuted),
-        filled: true,
-        fillColor: AppColors.background,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.surfaceBorder),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.surfaceBorder),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide:
-              const BorderSide(color: AppColors.accent, width: 2),
-        ),
-      );
+  @override
+  void dispose() {
+    _minsCtrl.dispose();
+    _secsCtrl.dispose();
+    super.dispose();
+  }
+
+  void _applyQuick(int totalSeconds) {
+    _minsCtrl.text = (totalSeconds ~/ 60).toString().padLeft(2, '0');
+    _secsCtrl.text = (totalSeconds % 60).toString().padLeft(2, '0');
+    if (mounted) setState(() { _minsError = null; _secsError = null; });
+  }
+
+  void _submit() {
+    if (_countdown) {
+      final mBlank = _minsCtrl.text.trim().isEmpty;
+      final sBlank = _secsCtrl.text.trim().isEmpty;
+      if (mBlank || sBlank) {
+        if (mounted) setState(() {
+          _minsError = mBlank ? 'Enter minutes' : null;
+          _secsError = sBlank ? 'Enter seconds' : null;
+        });
+        return; // stay open
+      }
+    }
+    final m = int.tryParse(_minsCtrl.text) ?? 0;
+    final s = (int.tryParse(_secsCtrl.text) ?? 0).clamp(0, 59);
+    widget.app.setTimerTime(
+      countdown: _countdown,
+      totalSeconds: _countdown ? m * 60 + s : 0,
+    );
+    if (mounted) Navigator.pop(context);
+  }
+
+  static InputDecoration _field(String label, String? error) => InputDecoration(
+    labelText: label,
+    labelStyle: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+    errorText: error,
+    filled: true,
+    fillColor: AppColors.background,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(10),
+      borderSide: const BorderSide(color: AppColors.surfaceBorder),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(10),
+      borderSide: const BorderSide(color: AppColors.surfaceBorder),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(10),
+      borderSide: const BorderSide(color: AppColors.accent, width: 2),
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    // MediaQuery.of(this widget's context) is properly managed by Flutter's
+    // element lifecycle — no stale dependency after route pop.
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 20, 20, bottomInset + 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header ─────────────────────────────────────────────────────
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Set Timer',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+              TextButton(
+                onPressed: () { if (mounted) Navigator.pop(context); },
+                child: const Text('Cancel',
+                    style: TextStyle(color: AppColors.textMuted, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // ── Count Up / Down toggle ──────────────────────────────────────
+          Row(children: [
+            Expanded(
+              child: GestureDetector(
+                onTap: () { if (mounted) setState(() => _countdown = false); },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: !_countdown ? AppColors.success : AppColors.surfaceHigh,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Column(children: [
+                    Icon(Icons.trending_up, size: 20,
+                        color: !_countdown ? Colors.white : AppColors.textMuted),
+                    const SizedBox(height: 4),
+                    Text('Count Up', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13,
+                        color: !_countdown ? Colors.white : AppColors.textMuted)),
+                  ]),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: GestureDetector(
+                onTap: () { if (mounted) setState(() => _countdown = true); },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: _countdown ? AppColors.warning : AppColors.surfaceHigh,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Column(children: [
+                    Icon(Icons.trending_down, size: 20,
+                        color: _countdown ? Colors.white : AppColors.textMuted),
+                    const SizedBox(height: 4),
+                    Text('Count Down', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13,
+                        color: _countdown ? Colors.white : AppColors.textMuted)),
+                  ]),
+                ),
+              ),
+            ),
+          ]),
+          const SizedBox(height: 20),
+
+          // ── Time inputs (countdown only) ────────────────────────────────
+          if (_countdown) ...[
+            const _SectionLabel('Start Time'),
+            const SizedBox(height: 8),
+            Row(children: [
+              Expanded(
+                child: TextField(
+                  controller: _minsCtrl,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold,
+                      color: Colors.white, fontFeatures: [FontFeature.tabularFigures()]),
+                  onChanged: (_) { if (mounted) setState(() => _minsError = null); },
+                  decoration: _field('MIN', _minsError),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 14),
+                child: Text(':', style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: Colors.white)),
+              ),
+              Expanded(
+                child: TextField(
+                  controller: _secsCtrl,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    _MaxValueFormatter(59),
+                  ],
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold,
+                      color: Colors.white, fontFeatures: [FontFeature.tabularFigures()]),
+                  onChanged: (_) { if (mounted) setState(() => _secsError = null); },
+                  decoration: _field('SEC', _secsError),
+                ),
+              ),
+            ]),
+            const SizedBox(height: 16),
+            const _SectionLabel('Quick Set'),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8, runSpacing: 8,
+              children: [
+                _QuickChip(label: '10:00', onTap: () => _applyQuick(10 * 60)),
+                _QuickChip(label: '12:00', onTap: () => _applyQuick(12 * 60)),
+                _QuickChip(label: '15:00', onTap: () => _applyQuick(15 * 60)),
+                _QuickChip(label: '20:00', onTap: () => _applyQuick(20 * 60)),
+                _QuickChip(label: '25:00', onTap: () => _applyQuick(25 * 60)),
+                _QuickChip(label: '45:00', onTap: () => _applyQuick(45 * 60)),
+              ],
+            ),
+          ] else ...[
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceHigh,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Row(children: [
+                Icon(Icons.info_outline, size: 16, color: AppColors.textMuted),
+                SizedBox(width: 8),
+                Text('Timer will count up from 00:00',
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+              ]),
+            ),
+          ],
+
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _submit,
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
+              child: const Text('Set & Reset Timer',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ─── Max-value input formatter ─────────────────────────────────────────────────

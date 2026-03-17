@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 import '../models/app_config.dart';
 import '../models/advertisement.dart';
 import '../services/udp_service.dart';
@@ -73,8 +74,14 @@ class AppProvider extends ChangeNotifier {
     _ramt.ultraWide    = _config.ultraWide;
     _ramt.singleColour = _config.singleColour;
     _shotClockSecondsLive = _config.shotClockSeconds;
-    notifyListeners();
-    _startAutoReconnect();
+
+    // Defer the first UI rebuild and network probe to after the first frame
+    // to avoid doing heavy work while Flutter is still rendering the initial
+    // layout (prevents the "Skipped N frames" startup warning).
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+      _startAutoReconnect();
+    });
   }
 
   // ─── Persistence ───────────────────────────────────────────────────────────

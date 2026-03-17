@@ -78,153 +78,149 @@ class ShotClockWidget extends StatelessWidget {
 
   /// Shows the Set Shot-Clock Time bottom sheet.
   void _showSetTimeDialog(BuildContext context, AppProvider app) {
-    final sport = app.config.currentSport ?? '';
-    final initSecs = app.config.shotClockSeconds;
-    final secsCtrl =
-        TextEditingController(text: initSecs.toString());
-
-    // Validation error string — lives in closure across setState calls
-    String? secsError;
-
-    // Common quick-set values (seconds)
-    final chips = sport == 'Hockey'
-        ? [20, 30, 40, 60]
-        : [14, 20, 24, 30]; // Basketball defaults
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      isDismissible: false,
+      enableDrag: false,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setState) {
-          void applyQuick(int s) {
-            secsCtrl.text = s.toString();
-            setState(() { secsError = null; });
-          }
+      builder: (_) => _SetShotClockSheet(app: app),
+    );
+  }
+}
 
-          return Padding(
-            padding: EdgeInsets.fromLTRB(
-                20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Handle
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceBorder,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Set Shot Clock',
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Sets the default reset value in seconds.',
-                  style:
-                      TextStyle(fontSize: 12, color: AppColors.textMuted),
-                ),
-                const SizedBox(height: 20),
+// ─── Set Shot Clock sheet (proper StatefulWidget) ──────────────────────────────
 
-                // ── Seconds input ─────────────────────────────────────────
-                _SubLabel('Seconds'),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: secsCtrl,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly
-                  ],
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 36,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    fontFeatures: [FontFeature.tabularFigures()],
-                  ),
-                  onChanged: (_) => setState(() => secsError = null),
-                  decoration: InputDecoration(
-                    labelText: 'SECONDS',
-                    labelStyle: const TextStyle(
-                        fontSize: 12, color: AppColors.textMuted),
-                    errorText: secsError,
-                    filled: true,
-                    fillColor: AppColors.background,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide:
-                          const BorderSide(color: AppColors.surfaceBorder),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide:
-                          const BorderSide(color: AppColors.surfaceBorder),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(
-                          color: AppColors.accent, width: 2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
+class _SetShotClockSheet extends StatefulWidget {
+  final AppProvider app;
+  const _SetShotClockSheet({required this.app});
+  @override
+  State<_SetShotClockSheet> createState() => _SetShotClockSheetState();
+}
 
-                // ── Quick chips ───────────────────────────────────────────
-                _SubLabel('Quick Set'),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: chips
-                      .map((s) => _QuickChip(
-                          label: '${s}s', onTap: () => applyQuick(s)))
-                      .toList(),
-                ),
-                const SizedBox(height: 24),
+class _SetShotClockSheetState extends State<_SetShotClockSheet> {
+  late TextEditingController _secsCtrl;
+  late int _initSecs;
+  late List<int> _chips;
+  String? _secsError;
 
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      // Validate: field must not be blank
-                      if (secsCtrl.text.trim().isEmpty) {
-                        setState(() => secsError = 'Enter seconds');
-                        return; // stay open
-                      }
-                      final s = int.tryParse(secsCtrl.text) ?? initSecs;
-                      if (s > 0) {
-                        context
-                            .read<AppProvider>()
-                            .setShotClockDefault(s.clamp(1, 999));
-                      }
-                      Navigator.pop(ctx);
-                    },
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.accent),
-                    child: const Text('Set Shot Clock',
-                        style:
-                            TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                ),
-              ],
+  @override
+  void initState() {
+    super.initState();
+    _initSecs = widget.app.config.shotClockSeconds;
+    _secsCtrl = TextEditingController(text: _initSecs.toString());
+    final sport = widget.app.config.currentSport ?? '';
+    _chips = sport == 'Hockey' ? [20, 30, 40, 60] : [14, 20, 24, 30];
+  }
+
+  @override
+  void dispose() {
+    _secsCtrl.dispose();
+    super.dispose();
+  }
+
+  void _applyQuick(int s) {
+    _secsCtrl.text = s.toString();
+    if (mounted) setState(() => _secsError = null);
+  }
+
+  void _submit() {
+    if (_secsCtrl.text.trim().isEmpty) {
+      if (mounted) setState(() => _secsError = 'Enter seconds');
+      return; // stay open
+    }
+    final s = int.tryParse(_secsCtrl.text) ?? _initSecs;
+    if (s > 0) {
+      widget.app.setShotClockDefault(s.clamp(1, 999));
+    }
+    if (mounted) Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 20, 20, bottomInset + 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header ─────────────────────────────────────────────────────
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Set Shot Clock',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+              TextButton(
+                onPressed: () { if (mounted) Navigator.pop(context); },
+                child: const Text('Cancel',
+                    style: TextStyle(color: AppColors.textMuted, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+          const Text('Sets the default reset value in seconds.',
+              style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+          const SizedBox(height: 20),
+
+          // ── Seconds input ───────────────────────────────────────────────
+          _SubLabel('Seconds'),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _secsCtrl,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold,
+                color: Colors.white, fontFeatures: [FontFeature.tabularFigures()]),
+            onChanged: (_) { if (mounted) setState(() => _secsError = null); },
+            decoration: InputDecoration(
+              labelText: 'SECONDS',
+              labelStyle: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+              errorText: _secsError,
+              filled: true,
+              fillColor: AppColors.background,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: AppColors.surfaceBorder),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: AppColors.surfaceBorder),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: AppColors.accent, width: 2),
+              ),
             ),
-          );
-        },
+          ),
+          const SizedBox(height: 16),
+
+          // ── Quick chips ─────────────────────────────────────────────────
+          _SubLabel('Quick Set'),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8, runSpacing: 8,
+            children: _chips
+                .map((s) => _QuickChip(label: '${s}s', onTap: () => _applyQuick(s)))
+                .toList(),
+          ),
+          const SizedBox(height: 24),
+
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _submit,
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
+              child: const Text('Set Shot Clock',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
       ),
-    ).then((_) => secsCtrl.dispose());
+    );
   }
 }
 

@@ -37,6 +37,7 @@ class _TeamNamesCardState extends State<TeamNamesCard> {
   }
 
   void _onHomeFocusChange() {
+    if (!mounted) return; // guard against post-dispose callbacks
     if (!_homeFocus.hasFocus && _homeCtr.text.isEmpty) {
       // Restore last good value if user cleared the field
       _homeCtr.text = _lastHome;
@@ -45,6 +46,7 @@ class _TeamNamesCardState extends State<TeamNamesCard> {
   }
 
   void _onAwayFocusChange() {
+    if (!mounted) return;
     if (!_awayFocus.hasFocus && _awayCtr.text.isEmpty) {
       _awayCtr.text = _lastAway;
       _setAway(context.read<AppProvider>(), _lastAway);

@@ -89,6 +89,7 @@ class _EditableScoreState extends State<_EditableScore> {
     _focus = FocusNode();
     _focus.addListener(() {
       // When focus is lost, restore to current value if field was cleared
+      if (!mounted) return; // guard against post-dispose callbacks
       if (!_focus.hasFocus && _ctrl.text.isEmpty) {
         _ctrl.text = '${widget.value}';
       }
