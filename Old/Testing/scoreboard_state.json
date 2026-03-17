@@ -1,0 +1,23 @@
+{
+  "sport": "Soccer",
+  "home_name": "HOME",
+  "away_name": "AWAY",
+  "home_score": 0,
+  "away_score": 0,
+  "current_half": 1,
+  "half_style": {
+    "color": "1",
+    "size": "1"
+  },
+  "name_style": {
+    "home": {
+      "color": "1",
+      "size": "3"
+    },
+    "away": {
+      "color": "1",
+      "size": "3"
+    }
+  },
+  "home_banner_text": "WELCOME"
+}
