@@ -9,14 +9,30 @@ import '../theme/app_theme.dart';
 
 // ─── Character limit helpers ───────────────────────────────────────────────────
 
-/// LED pixel widths per character for each size code.
-/// XL=22px, L=15px, M=7px, S=4px (approximate for small).
+/// LED pixel widths per character for each size code (Small only).
 const Map<String, int> kLedPixelW = {'4': 22, '3': 15, '2': 7, '1': 4};
 const Map<String, int> kLedPixelH = {'4': 34, '3': 22, '2': 11, '1': 6};
 
+/// Fixed character pixel widths derived from a 128-wide reference display:
+///   XL (5 chars @ 128px) → 128/5 = 25.6 px/char
+///   Large (7 chars @ 128px) → 128/7 ≈ 18.3 px/char
+///   Medium (15 chars @ 128px) → 128/15 ≈ 8.53 px/char
+/// These pixel widths are constant regardless of display size.
+const Map<String, double> kCharPixelW = {
+  '4': 128 / 5,   // XL
+  '3': 128 / 7,   // Large
+  '2': 128 / 15,  // Medium
+};
+
 int _charLimit(String size, int displayWidth) {
-  final pw = kLedPixelW[size] ?? 7;
-  return math.max(1, displayWidth ~/ pw);
+  final pw = kCharPixelW[size];
+  if (pw != null) {
+    // Fixed pixel width — scale count to actual display width
+    return math.max(1, (displayWidth / pw).floor());
+  }
+  // Small — use LED pixel width directly
+  final ledW = kLedPixelW[size] ?? 4;
+  return math.max(1, displayWidth ~/ ledW);
 }
 
 /// Map LED colour code → Flutter Color.
@@ -74,9 +90,10 @@ class _AdEditorScreenState extends State<AdEditorScreen>
   late final List<TextEditingController> _textCtrs;
   late final List<FocusNode> _textFocusNodes;
   late final List<_RowData> _rows; // 4 slots (not all active)
-  int  _numRows     = 1;
-  int  _selectedRow = 0;
-  bool _border      = false;
+  int  _numRows       = 1;
+  int  _selectedRow   = 0;
+  bool _editingActive = false; // true = cursor + keyboard shown
+  bool _border        = false;
 
   // ── Border animation ───────────────────────────────────────────────────────
   late final AnimationController _borderAnim;
@@ -159,11 +176,10 @@ class _AdEditorScreenState extends State<AdEditorScreen>
 
     if (_border) _borderAnim.repeat();
 
-    // Start tracking edits and auto-select row 0 so keyboard is ready immediately
+    // Start tracking edits; row 0 is highlighted by default, no keyboard on load
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _trackEdits = true;
-      _selectRow(0); // ensures cursor blinks and keyboard is primed on mobile
     });
   }
 
@@ -214,27 +230,21 @@ class _AdEditorScreenState extends State<AdEditorScreen>
 
   int _limitFor(int rowIdx) => _charLimit(_rows[rowIdx].size, _displayWidth);
 
+  /// Highlight a row without opening the keyboard (used by row-chip tabs).
   void _selectRow(int idx) {
     if (idx < 0 || idx >= _numRows) return;
-    setState(() => _selectedRow = idx);
-    _startCursorBlink();
-    // Focus the hidden TextField and move cursor to end.
-    // Then explicitly show keyboard — on iOS/Android requestFocus() alone
-    // won't trigger the software keyboard if no real touch reached the widget.
-    _textFocusNodes[idx].requestFocus();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final ctrl = _textCtrs[idx];
-      ctrl.selection = TextSelection.fromPosition(
-          TextPosition(offset: ctrl.text.length));
-      // Force the platform keyboard to appear.
-      SystemChannels.textInput.invokeMethod<void>('TextInput.show');
+    setState(() {
+      _selectedRow   = idx;
+      _editingActive = false;
     });
+    _stopCursorBlink();
+    FocusScope.of(context).unfocus();
   }
 
   /// Re-focus the active row's hidden TextField without changing cursor position.
-  /// Called after colour/size/align changes so the keyboard stays visible.
+  /// Only called after colour/size/align changes when keyboard is already up.
   void _refocusSelectedRow() {
+    if (!_editingActive) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _textFocusNodes[_selectedRow].requestFocus();
@@ -249,8 +259,7 @@ class _AdEditorScreenState extends State<AdEditorScreen>
       return _textCtrs[row].text.length;
     }
     final rowData = _rows[row];
-    final scaleX  = _lastCanvasWidth / _displayWidth;
-    final cellW   = (kLedPixelW[rowData.size] ?? 7) * scaleX;
+    final cellW   = _lastCanvasWidth / _charLimit(rowData.size, _displayWidth);
     if (cellW <= 0 || !cellW.isFinite) return _textCtrs[row].text.length;
 
     final text = _textCtrs[row].text;
@@ -269,24 +278,47 @@ class _AdEditorScreenState extends State<AdEditorScreen>
 
   void _handleCanvasTap(TapDownDetails d) {
     if (_lastCanvasHeight <= 0 || _numRows <= 0) return;
-    final zoneH   = _lastCanvasHeight / _numRows;
-    final row     = (d.localPosition.dy / zoneH).floor().clamp(0, _numRows - 1);
-    final charPos = _canvasTapToCharPos(d.localPosition, row);
+    final zoneH = _lastCanvasHeight / _numRows;
+    final row   = (d.localPosition.dy / zoneH).floor().clamp(0, _numRows - 1);
 
-    setState(() => _selectedRow = row);
+    if (row != _selectedRow) {
+      // First click on a different row: highlight only, no keyboard
+      setState(() {
+        _selectedRow   = row;
+        _editingActive = false;
+      });
+      _stopCursorBlink();
+      FocusScope.of(context).unfocus();
+      return;
+    }
+
+    // Second click (or click on already-selected row): activate editing
+    final charPos = _canvasTapToCharPos(d.localPosition, row);
+    setState(() => _editingActive = true);
     _startCursorBlink();
     _textFocusNodes[row].requestFocus();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final ctrl = _textCtrs[row];
-      final clampedPos = charPos.clamp(0, ctrl.text.length);
-      ctrl.selection = TextSelection.collapsed(offset: clampedPos);
+      ctrl.selection = TextSelection.collapsed(
+          offset: charPos.clamp(0, ctrl.text.length));
       SystemChannels.textInput.invokeMethod<void>('TextInput.show');
+    });
+  }
+
+  void _handleCanvasDoubleTap() {
+    if (!_editingActive) return;
+    final ctrl = _textCtrs[_selectedRow];
+    if (ctrl.text.isEmpty) return;
+    setState(() {
+      ctrl.selection = TextSelection(
+          baseOffset: 0, extentOffset: ctrl.text.length);
     });
   }
 
   void _handleCanvasDragStart(DragStartDetails d) {
     if (_lastCanvasHeight <= 0 || _numRows <= 0) return;
+    if (!_editingActive) return;
     final zoneH   = _lastCanvasHeight / _numRows;
     final row     = (d.localPosition.dy / zoneH).floor().clamp(0, _numRows - 1);
     final charPos = _canvasTapToCharPos(d.localPosition, row);
@@ -321,11 +353,16 @@ class _AdEditorScreenState extends State<AdEditorScreen>
     if (_numRows >= 4) return;
     setState(() {
       _numRows++;
-      _selectedRow = _numRows - 1;
+      _selectedRow   = _numRows - 1;
+      _editingActive = true;
     });
     _markEdited();
     _startCursorBlink();
     _textFocusNodes[_selectedRow].requestFocus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      SystemChannels.textInput.invokeMethod<void>('TextInput.show');
+    });
   }
 
   void _removeLastRow() {
@@ -334,7 +371,10 @@ class _AdEditorScreenState extends State<AdEditorScreen>
       _textCtrs[_numRows - 1].text = '';
       _rows[_numRows - 1]          = _RowData();
       _numRows--;
-      if (_selectedRow >= _numRows) _selectedRow = _numRows - 1;
+      if (_selectedRow >= _numRows) {
+        _selectedRow   = _numRows - 1;
+        _editingActive = false;
+      }
     });
     _markEdited();
   }
@@ -594,6 +634,7 @@ class _AdEditorScreenState extends State<AdEditorScreen>
                         // Canvas with tap + drag-to-select detection
                         GestureDetector(
                           onTapDown             : _handleCanvasTap,
+                          onDoubleTap           : _handleCanvasDoubleTap,
                           onHorizontalDragStart : _handleCanvasDragStart,
                           onHorizontalDragUpdate: _handleCanvasDragUpdate,
                           child: Container(
@@ -633,7 +674,7 @@ class _AdEditorScreenState extends State<AdEditorScreen>
                                     fontSizes     : Map.from(_fsCache),
                                     border        : _border,
                                     borderOffset  : _borderOffset,
-                                    cursorVisible : _cursorVisible,
+                                    cursorVisible : _cursorVisible && _editingActive,
                                     cursorCharPos : curPos,
                                     selectionStart: selStart,
                                     selectionEnd  : selEnd,
@@ -1182,7 +1223,7 @@ class _AdPreviewPainter extends CustomPainter {
         selectionStart != selectionEnd) {
       final row     = rows[selectedRow];
       final limit   = _charLimit(row.size, displayWidth);
-      final cellW   = (kLedPixelW[row.size] ?? 7) * scaleX;
+      final cellW   = size.width / limit;
       final textLen = math.min(texts[selectedRow].length, limit);
       final sStart  = math.min(selectionStart, selectionEnd).clamp(0, textLen);
       final sEnd    = math.max(selectionStart, selectionEnd).clamp(0, textLen);
@@ -1210,8 +1251,8 @@ class _AdPreviewPainter extends CustomPainter {
       final limit = _charLimit(row.size, displayWidth);
       final color = singleColour ? _ledColor('1') : _ledColor(row.color);
 
-      // Pixel-accurate LED cell dimensions scaled to canvas
-      final cellW    = (kLedPixelW[row.size] ?? 7)  * scaleX;
+      // Cell width evenly divides canvas across the character limit
+      final cellW    = size.width / limit;
       final cellH    = _cellH(row.size, scaleY);
       final fontSize = math.max(6.0, cellH);
 
@@ -1251,7 +1292,7 @@ class _AdPreviewPainter extends CustomPainter {
       final textLen = math.min(texts[selectedRow].length, limit);
       final curPos  = cursorCharPos.clamp(0, textLen);
 
-      final cellW  = (kLedPixelW[row.size] ?? 7) * scaleX;
+      final cellW  = size.width / limit;
       final cellH  = _cellH(row.size, scaleY);
 
       final zoneTop    = selectedRow * zoneH;

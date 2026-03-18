@@ -14,3 +14,11 @@ flutter pub get
 flutter run
 
 
+Update:
+
+Before every release, open pubspec.yaml and bump the version:
+
+version: 1.0.0+1
+#        ↑ name shown in store  ↑ versionCode (increment every upload)
+
+The number after + must go up by 1 every single time you upload to Play Store. Start at +1, next upload +2, etc.

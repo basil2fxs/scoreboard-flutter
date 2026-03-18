@@ -12,7 +12,7 @@ class DisplaySetupScreen extends StatefulWidget {
 
 class _DisplaySetupScreenState extends State<DisplaySetupScreen> {
   final _wCtrl = TextEditingController(text: '128');
-  final _hCtrl = TextEditingController(text: '64');
+  final _hCtrl = TextEditingController(text: '80');
   bool _singleColour = false;
   bool _ultraWide    = false;
   String? _error;
@@ -54,7 +54,7 @@ class _DisplaySetupScreenState extends State<DisplaySetupScreen> {
               // ── Dimensions ────────────────────────────────────────────────
               _DimField(label: 'Width (pixels)', ctrl: _wCtrl, hint: '128'),
               const SizedBox(height: 20),
-              _DimField(label: 'Height (pixels)', ctrl: _hCtrl, hint: '64'),
+              _DimField(label: 'Height (pixels)', ctrl: _hCtrl, hint: '80'),
 
               if (_error != null) ...[
                 const SizedBox(height: 12),
@@ -73,14 +73,22 @@ class _DisplaySetupScreenState extends State<DisplaySetupScreen> {
                   label: 'Multi-Colour',
                   icon: Icons.palette,
                   selected: !_singleColour,
-                  onTap: () => setState(() => _singleColour = false),
+                  onTap: () => setState(() {
+                    _singleColour = false;
+                    _wCtrl.text = '128';
+                    _hCtrl.text = '80';
+                  }),
                 ),
                 const SizedBox(width: 10),
                 _TypeChip(
                   label: 'Single Colour',
                   icon: Icons.circle,
                   selected: _singleColour,
-                  onTap: () => setState(() => _singleColour = true),
+                  onTap: () => setState(() {
+                    _singleColour = true;
+                    _wCtrl.text = '96';
+                    _hCtrl.text = '128';
+                  }),
                 ),
               ]),
               if (_singleColour) ...[
