@@ -73,7 +73,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 status: app.connStatus,
                 onTap  : () => app.testConnection(),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 10),
+
+              // ── Demo / Tester mode banner ─────────────────────────────────
+              _DemoBanner(
+                active   : app.bypassMode,
+                onEnable : () => _showDemoDialog(context, app),
+                onDisable: () => app.enableBypass(false),
+              ),
+              const SizedBox(height: 10),
 
               // ── Select Sport ─────────────────────────────────────────────────
               _HomeBtn(
@@ -264,6 +272,49 @@ class _HomeScreenState extends State<HomeScreen> {
       'Basketball': '/simple',
     };
     Navigator.pushNamed(ctx, routes[sport] ?? '/simple');
+  }
+
+  void _showDemoDialog(BuildContext ctx, AppProvider app) {
+    showDialog<void>(
+      context: ctx,
+      builder: (d) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Row(
+          children: [
+            Icon(Icons.info_outline, color: AppColors.warning, size: 20),
+            SizedBox(width: 8),
+            Text('Demo Mode'),
+          ],
+        ),
+        content: const Text(
+          'This app controls a TF-F6 LED scoreboard over your local Wi-Fi '
+          'network using UDP commands.\n\n'
+          'To use the full app you need a TF-F6 LED scoreboard connected to '
+          'the same Wi-Fi network as your phone.\n\n'
+          'Demo Mode lets you explore all features — scores, timers, and '
+          'advertisements — without a physical scoreboard. Commands are '
+          'simulated instead of sent.',
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(d),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              app.enableBypass(true);
+              Navigator.pop(d);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.warning,
+              foregroundColor: Colors.black,
+            ),
+            child: const Text('Enable Demo Mode'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _confirmReset(BuildContext ctx, AppProvider app) async {
@@ -686,6 +737,110 @@ class _HomeBtn extends StatelessWidget {
           child:
               Text(label, style: const TextStyle(color: Colors.white)),
         ),
+      ),
+    );
+  }
+}
+
+// ─── Demo / Tester mode banner ────────────────────────────────────────────────
+
+class _DemoBanner extends StatelessWidget {
+  final bool active;
+  final VoidCallback onEnable;
+  final VoidCallback onDisable;
+  const _DemoBanner({
+    required this.active,
+    required this.onEnable,
+    required this.onDisable,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (active) {
+      // Active: amber bar with exit button
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.warning.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.warning.withOpacity(0.5)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.science, size: 15, color: AppColors.warning),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text(
+                'DEMO MODE — commands are simulated',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.warning,
+                ),
+              ),
+            ),
+            GestureDetector(
+              onTap: onDisable,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: AppColors.warning.withOpacity(0.5)),
+                ),
+                child: const Text(
+                  'Exit',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.warning,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Inactive: subtle info banner with "Try Demo Mode" button
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.surfaceBorder),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, size: 15, color: AppColors.textMuted),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text(
+              'Requires a TF-F6 LED scoreboard on your Wi-Fi',
+              style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+            ),
+          ),
+          GestureDetector(
+            onTap: onEnable,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceHigh,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: AppColors.surfaceBorder),
+              ),
+              child: const Text(
+                'Try Demo',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
