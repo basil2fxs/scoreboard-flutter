@@ -8,6 +8,7 @@ import '../widgets/timer_widget.dart';
 import '../widgets/afl_quarter_widget.dart';
 import '../widgets/section_card.dart';
 import '../widgets/ads_panel.dart';
+import '../widgets/settings_dialogs.dart';
 
 class AflScreen extends StatefulWidget {
   const AflScreen({super.key});
@@ -23,14 +24,15 @@ class _AflScreenState extends State<AflScreen> {
       final app = context.read<AppProvider>();
       app.initTimerForSport('AFL');
       app.sendSportProgram();
-      Future.delayed(const Duration(milliseconds: 150), app.resendAll);
+      Future.delayed(const Duration(milliseconds: 50), app.resendAll);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final app = context.watch<AppProvider>();
-    final c   = app.config;
+    final app     = context.watch<AppProvider>();
+    final c       = app.config;
+    final isLaptop = app.laptopScoring;
 
     return Scaffold(
       appBar: AppBar(
@@ -39,17 +41,20 @@ class _AflScreenState extends State<AflScreen> {
           app.backToHome();
           Navigator.pushReplacementNamed(context, '/home');
         }),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.tune, size: 20),
+            tooltip: 'Counter Channels',
+            onPressed: () => showCounterSettingsDialog(context, 'AFL'),
+          ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.only(bottom: 24),
         children: [
-          // Team Names
-          const TeamNamesCard(sport: 'AFL'),
-          // Quarter (above timer)
-          const AflQuarterWidget(),
-          // Timer
+          if (!isLaptop) const TeamNamesCard(sport: 'AFL'),
+          if (!isLaptop) const AflQuarterWidget(),
           const TimerWidget(),
-          // Home scores
           _AflTeamCard(
             teamLabel: c.aflHomeName.isEmpty ? 'HOME' : c.aflHomeName,
             teamColor: AppColors.homeTeam,
@@ -62,7 +67,6 @@ class _AflScreenState extends State<AflScreen> {
             onManualGoals : (v) => app.setAflScore('home', 'goals', v),
             onManualPoints: (v) => app.setAflScore('home', 'points', v),
           ),
-          // Away scores
           _AflTeamCard(
             teamLabel: c.aflAwayName.isEmpty ? 'AWAY' : c.aflAwayName,
             teamColor: AppColors.awayTeam,
@@ -75,10 +79,11 @@ class _AflScreenState extends State<AflScreen> {
             onManualGoals : (v) => app.setAflScore('away', 'goals', v),
             onManualPoints: (v) => app.setAflScore('away', 'points', v),
           ),
-          // Ads
           AdsPanel(onReturnToScores: () {
             app.sendSportProgram();
-            Future.delayed(const Duration(milliseconds: 150), app.resendAll);
+            if (!app.laptopScoring) {
+              Future.delayed(const Duration(milliseconds: 50), app.resendAll);
+            }
           }),
         ],
       ),
@@ -116,11 +121,7 @@ class _AflTeamCard extends StatelessWidget {
           Center(
             child: Text(
               'TOTAL: $total',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w900,
-                color: teamColor,
-              ),
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: teamColor),
             ),
           ),
           const SizedBox(height: 10),

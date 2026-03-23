@@ -1,10 +1,7 @@
 import 'udp_service.dart';
 import '../models/app_config.dart';
 
-/// Builds and sends all RAMT / CNTS commands to the TF-F6 controller.
-///
-/// This is the direct equivalent of the Python app's `send_name_ramt`,
-/// `_send_timer_display`, `_send_afl_quarter`, etc.
+/// Builds and sends all RAMT / CNTS / TIMS commands to the TF-F6 controller.
 class RamtService {
   final UdpService udp;
   RamtService(this.udp);
@@ -49,14 +46,16 @@ class RamtService {
   void subtractCounter(int n, int delta) =>
       udp.send('*#1CNTS$n,D$delta,0000');
 
+  // ─── Hardware timer commands (Laptop mode) ────────────────────────────────
+
+  void sendHardwareTimerStart(int n) => udp.send('*#1TIMS$n,0000');
+  void sendHardwareTimerPause(int n) => udp.send('*#1TIMP$n,0000');
+  void sendHardwareTimerReset(int n) => udp.send('*#1TIMR$n,0000');
+
   // ─── Team name (2 RAMT slots) ─────────────────────────────────────────────
-  ///
-  /// v_align is ALWAYS sourced from [style] — never from the caller — so that
-  /// both slots for a team always have identical alignment.
-  /// h_align is ALWAYS forced to '3' (Left).
   void sendTeamName(String name, int startSlot, DisplayStyle style) {
     const hAlign = '3'; // always Left
-    final vAlign = style.vAlign; // authoritative for this sport
+    final vAlign = style.vAlign;
     final cs = effectiveChunkSize(style.size);
     final src = name.isEmpty ? ' ' : name;
     final chunks = <String>[];

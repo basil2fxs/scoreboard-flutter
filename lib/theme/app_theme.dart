@@ -71,9 +71,9 @@ const List<AlignOption> kHAlignOptions = [
 ];
 
 const List<AlignOption> kVAlignOptions = [
-  AlignOption('1', 'Top'),
-  AlignOption('2', 'Mid'),
-  AlignOption('3', 'Bot'),
+  AlignOption('3', 'Top'),
+  AlignOption('1', 'Mid'),
+  AlignOption('2', 'Bot'),
 ];
 
 // ─── Theme ────────────────────────────────────────────────────────────────────

@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import '../widgets/team_names_card.dart';
 import '../widgets/section_card.dart';
 import '../widgets/ads_panel.dart';
+import '../widgets/settings_dialogs.dart';
 
 class CricketScreen extends StatefulWidget {
   const CricketScreen({super.key});
@@ -19,15 +20,17 @@ class _CricketScreenState extends State<CricketScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final app = context.read<AppProvider>();
+      app.initTimerForSport('Cricket');
       app.sendSportProgram();
-      Future.delayed(const Duration(milliseconds: 150), app.resendAll);
+      Future.delayed(const Duration(milliseconds: 50), app.resendAll);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final app = context.watch<AppProvider>();
-    final c   = app.config;
+    final app      = context.watch<AppProvider>();
+    final c        = app.config;
+    final isLaptop = app.laptopScoring;
 
     return Scaffold(
       appBar: AppBar(
@@ -36,12 +39,18 @@ class _CricketScreenState extends State<CricketScreen> {
           app.backToHome();
           Navigator.pushReplacementNamed(context, '/home');
         }),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.tune, size: 20),
+            tooltip: 'Counter Channels',
+            onPressed: () => showCounterSettingsDialog(context, 'Cricket'),
+          ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.only(bottom: 24),
         children: [
-          const TeamNamesCard(sport: 'Cricket'),
-          // Home team
+          if (!isLaptop) const TeamNamesCard(sport: 'Cricket'),
           _CricketTeamCard(
             label: c.cricketHomeName.isEmpty ? 'HOME' : c.cricketHomeName,
             color: AppColors.homeTeam,
@@ -52,7 +61,6 @@ class _CricketScreenState extends State<CricketScreen> {
             onManualWickets: (v) => app.setCricketField('homeWickets', v),
             onReset: () => app.resetCricketScores('home'),
           ),
-          // Away team
           _CricketTeamCard(
             label: c.cricketAwayName.isEmpty ? 'AWAY' : c.cricketAwayName,
             color: AppColors.awayTeam,
@@ -63,7 +71,6 @@ class _CricketScreenState extends State<CricketScreen> {
             onManualWickets: (v) => app.setCricketField('awayWickets', v),
             onReset: () => app.resetCricketScores('away'),
           ),
-          // Extras / Overs
           SectionCard(
             title: 'MATCH INFO',
             trailing: IconButton(
@@ -84,7 +91,9 @@ class _CricketScreenState extends State<CricketScreen> {
           ),
           AdsPanel(onReturnToScores: () {
             app.sendSportProgram();
-            Future.delayed(const Duration(milliseconds: 150), app.resendAll);
+            if (!app.laptopScoring) {
+              Future.delayed(const Duration(milliseconds: 50), app.resendAll);
+            }
           }),
         ],
       ),

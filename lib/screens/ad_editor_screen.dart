@@ -441,7 +441,7 @@ class _AdEditorScreenState extends State<AdEditorScreen>
     }
     setState(() => _previewActive = true);
     _appProvider.previewAd(
-        Advertisement(name: 'Preview', rows: rows, border: _border));
+        Advertisement(name: 'Preview', rows: rows, border: _border, numRows: _numRows));
   }
 
   // ─── Save ─────────────────────────────────────────────────────────────────
@@ -464,7 +464,7 @@ class _AdEditorScreenState extends State<AdEditorScreen>
     _stopPreviewIfActive();
     _saved = true; // suppress unsaved-changes prompt on pop
     _appProvider.saveAdvertisement(
-      Advertisement(name: name, rows: activeRows, border: _border),
+      Advertisement(name: name, rows: activeRows, border: _border, numRows: _numRows),
       editIndex: _editIndex,
     );
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -1068,7 +1068,7 @@ class _AdEditorScreenState extends State<AdEditorScreen>
                           _AlignBtn(
                               icon    : Icons.vertical_align_top,
                               label   : 'Top',
-                              code    : '1',
+                              code    : '3',
                               selected: rowData.vAlign,
                               onTap   : (v) {
                                 setState(() => _rows[_selectedRow].vAlign = v);
@@ -1079,7 +1079,7 @@ class _AdEditorScreenState extends State<AdEditorScreen>
                           _AlignBtn(
                               icon    : Icons.vertical_align_center,
                               label   : 'Mid',
-                              code    : '2',
+                              code    : '1',
                               selected: rowData.vAlign,
                               onTap   : (v) {
                                 setState(() => _rows[_selectedRow].vAlign = v);
@@ -1090,7 +1090,7 @@ class _AdEditorScreenState extends State<AdEditorScreen>
                           _AlignBtn(
                               icon    : Icons.vertical_align_bottom,
                               label   : 'Bot',
-                              code    : '3',
+                              code    : '2',
                               selected: rowData.vAlign,
                               onTap   : (v) {
                                 setState(() => _rows[_selectedRow].vAlign = v);
@@ -1260,13 +1260,13 @@ class _AdPreviewPainter extends CustomPainter {
       final zoneBottom = (i + 1) * zoneH;
 
       // Character centre Y anchored to LED cell height, not font metrics.
-      // vAlign '1' = top  → char top flush with zone top
-      // vAlign '3' = bot  → char bottom flush with zone bottom
-      // vAlign '2' = mid  → char centred in zone
+      // vAlign '3' = top  → char top flush with zone top
+      // vAlign '2' = bot  → char bottom flush with zone bottom
+      // vAlign '1' = mid  → char centred in zone
       final double y;
-      if (row.vAlign == '1') {
+      if (row.vAlign == '3') {
         y = zoneTop + cellH / 2;
-      } else if (row.vAlign == '3') {
+      } else if (row.vAlign == '2') {
         y = zoneBottom - cellH / 2;
       } else {
         y = (zoneTop + zoneBottom) / 2;
@@ -1299,9 +1299,9 @@ class _AdPreviewPainter extends CustomPainter {
       final zoneBottom = (selectedRow + 1) * zoneH;
 
       final double cy;
-      if (row.vAlign == '1') {
+      if (row.vAlign == '3') {
         cy = zoneTop + cellH / 2;
-      } else if (row.vAlign == '3') {
+      } else if (row.vAlign == '2') {
         cy = zoneBottom - cellH / 2;
       } else {
         cy = (zoneTop + zoneBottom) / 2;

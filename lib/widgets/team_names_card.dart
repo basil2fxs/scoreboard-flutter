@@ -6,6 +6,7 @@ import 'section_card.dart';
 import 'settings_dialogs.dart';
 
 /// Team name input card — adapts for AFL / Cricket / generic sports.
+/// Hidden entirely in laptop scoring mode.
 class TeamNamesCard extends StatefulWidget {
   final String sport;
   const TeamNamesCard({super.key, required this.sport});
@@ -19,7 +20,6 @@ class _TeamNamesCardState extends State<TeamNamesCard> {
   late FocusNode _homeFocus;
   late FocusNode _awayFocus;
 
-  // Track last known non-blank values so we can restore on blank unfocus
   String _lastHome = '';
   String _lastAway = '';
 
@@ -37,9 +37,8 @@ class _TeamNamesCardState extends State<TeamNamesCard> {
   }
 
   void _onHomeFocusChange() {
-    if (!mounted) return; // guard against post-dispose callbacks
+    if (!mounted) return;
     if (!_homeFocus.hasFocus && _homeCtr.text.isEmpty) {
-      // Restore last good value if user cleared the field
       _homeCtr.text = _lastHome;
       _setHome(context.read<AppProvider>(), _lastHome);
     }
@@ -54,23 +53,23 @@ class _TeamNamesCardState extends State<TeamNamesCard> {
   }
 
   String _getHome(c) {
-    if (widget.sport == 'AFL')    return c.aflHomeName;
+    if (widget.sport == 'AFL')     return c.aflHomeName;
     if (widget.sport == 'Cricket') return c.cricketHomeName;
     return c.homeName;
   }
   String _getAway(c) {
-    if (widget.sport == 'AFL')    return c.aflAwayName;
+    if (widget.sport == 'AFL')     return c.aflAwayName;
     if (widget.sport == 'Cricket') return c.cricketAwayName;
     return c.awayName;
   }
 
   void _setHome(AppProvider app, String v) {
-    if (widget.sport == 'AFL')    { app.setAflHomeName(v); return; }
+    if (widget.sport == 'AFL')     { app.setAflHomeName(v); return; }
     if (widget.sport == 'Cricket') { app.setCricketHomeName(v); return; }
     app.setHomeName(v);
   }
   void _setAway(AppProvider app, String v) {
-    if (widget.sport == 'AFL')    { app.setAflAwayName(v); return; }
+    if (widget.sport == 'AFL')     { app.setAflAwayName(v); return; }
     if (widget.sport == 'Cricket') { app.setCricketAwayName(v); return; }
     app.setAwayName(v);
   }
@@ -88,7 +87,11 @@ class _TeamNamesCardState extends State<TeamNamesCard> {
 
   @override
   Widget build(BuildContext context) {
+    // In laptop mode this widget is not shown (caller guards with if (!isLaptop))
+    // but we keep the guard here as a safety net
     final app = context.read<AppProvider>();
+    if (app.laptopScoring) return const SizedBox.shrink();
+
     return SectionCard(
       title: 'TEAM NAMES',
       trailing: SettingsIconButton(onTap: () => showTeamNameSettingsDialog(context)),

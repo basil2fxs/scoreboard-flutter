@@ -7,12 +7,12 @@ class SportSelectionScreen extends StatelessWidget {
   const SportSelectionScreen({super.key});
 
   static const _sports = [
-    ('AFL',        '🦘', Color(0xFFCC6600)),
-    ('Soccer',     '⚽', Color(0xFF0066CC)),
-    ('Cricket',    '🏏', Color(0xFF006600)),
-    ('Rugby',      '🏉', Color(0xFF660066)),
-    ('Hockey',     '🏒', Color(0xFF006666)),
-    ('Basketball', '🏀', Color(0xFFCC3300)),
+    ('AFL',              '🦘', Color(0xFFCC6600)),
+    ('Soccer/ Universal','⚽', Color(0xFF0066CC)),
+    ('Cricket',          '🏏', Color(0xFF006600)),
+    ('Rugby',            '🏉', Color(0xFF660066)),
+    ('Hockey',           '🏒', Color(0xFF006666)),
+    ('Basketball',       '🏀', Color(0xFFCC3300)),
   ];
 
   @override

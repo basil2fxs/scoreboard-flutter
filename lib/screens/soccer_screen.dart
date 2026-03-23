@@ -7,6 +7,7 @@ import '../widgets/timer_widget.dart';
 import '../widgets/score_card.dart';
 import '../widgets/section_card.dart';
 import '../widgets/ads_panel.dart';
+import '../widgets/settings_dialogs.dart';
 
 class SoccerScreen extends StatefulWidget {
   const SoccerScreen({super.key});
@@ -20,9 +21,9 @@ class _SoccerScreenState extends State<SoccerScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final app = context.read<AppProvider>();
-      app.initTimerForSport('Soccer');
+      app.initTimerForSport('Soccer/ Universal');
       app.sendSportProgram();
-      Future.delayed(const Duration(milliseconds: 150), app.resendAll);
+      Future.delayed(const Duration(milliseconds: 50), app.resendAll);
     });
   }
 
@@ -31,7 +32,7 @@ class _SoccerScreenState extends State<SoccerScreen> {
     final app = context.watch<AppProvider>();
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Soccer Match'),
+        title: const Text('Soccer/ Universal'),
         leading: BackButton(onPressed: () {
           app.backToHome();
           Navigator.pushReplacementNamed(context, '/home');
@@ -40,17 +41,23 @@ class _SoccerScreenState extends State<SoccerScreen> {
       body: ListView(
         padding: const EdgeInsets.only(bottom: 24),
         children: [
-          // Team Names
-          const TeamNamesCard(sport: 'Soccer'),
-          // Timer
+          if (!app.laptopScoring) const TeamNamesCard(sport: 'Soccer/ Universal'),
           const TimerWidget(),
-          // Scores
           SectionCard(
             title: 'SCORES',
-            trailing: IconButton(
-              icon: const Icon(Icons.refresh, size: 18, color: AppColors.danger),
-              onPressed: () => context.read<AppProvider>().resetScores(),
-              tooltip: 'Reset scores',
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SettingsIconButton(
+                  onTap: () => showCounterSettingsDialog(context, 'Soccer/ Universal')),
+                const SizedBox(width: 4),
+                IconButton(
+                  icon: const Icon(Icons.refresh, size: 18, color: AppColors.danger),
+                  onPressed: () => context.read<AppProvider>().resetScores(),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                ),
+              ],
             ),
             child: Column(
               children: [
@@ -74,10 +81,11 @@ class _SoccerScreenState extends State<SoccerScreen> {
               ],
             ),
           ),
-          // Ads
           AdsPanel(onReturnToScores: () {
             app.sendSportProgram();
-            Future.delayed(const Duration(milliseconds: 150), app.resendAll);
+            if (!app.laptopScoring) {
+              Future.delayed(const Duration(milliseconds: 50), app.resendAll);
+            }
           }),
         ],
       ),

@@ -6,10 +6,216 @@ import '../providers/app_provider.dart';
 import '../theme/app_theme.dart';
 import 'section_card.dart';
 
-/// Advertisement checklist + loop controls — embedded in every sport screen.
+/// Advertisement panel — embedded in every sport screen.
+/// In laptop mode: shows fixed Ad 1–5 slots (program-select only).
+/// In normal mode: shows custom user-created ads with full CRUD.
 class AdsPanel extends StatelessWidget {
   final VoidCallback onReturnToScores;
   const AdsPanel({super.key, required this.onReturnToScores});
+
+  @override
+  Widget build(BuildContext context) {
+    final app = context.watch<AppProvider>();
+    if (app.laptopScoring) {
+      return _LaptopAdsPanel(onReturnToScores: onReturnToScores);
+    }
+    return _NormalAdsPanel(onReturnToScores: onReturnToScores);
+  }
+}
+
+// ─── Laptop mode: Fixed Ads 1–5 ───────────────────────────────────────────────
+
+class _LaptopAdsPanel extends StatelessWidget {
+  final VoidCallback onReturnToScores;
+  const _LaptopAdsPanel({required this.onReturnToScores});
+
+  @override
+  Widget build(BuildContext context) {
+    final app  = context.watch<AppProvider>();
+    final loop = app.adLoopActive;
+    final anySelected = List.generate(5, (i) => app.getLaptopAdSelected(i + 1))
+        .any((s) => s);
+
+    return SectionCard(
+      title: 'ADVERTISEMENTS',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          const Row(
+            children: [
+              SizedBox(width: 36),
+              Expanded(child: Text('Advertisement',
+                  style: TextStyle(fontSize: 11, color: AppColors.textMuted,
+                      fontWeight: FontWeight.bold))),
+              SizedBox(width: 64,
+                child: Text('Secs', textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 11, color: AppColors.textMuted,
+                        fontWeight: FontWeight.bold))),
+            ],
+          ),
+          const SizedBox(height: 4),
+
+          // Fixed Ad 1–5 rows
+          ...List.generate(5, (idx) {
+            final n = idx + 1;
+            return _LaptopAdRow(
+              adNumber: n,
+              selected: app.getLaptopAdSelected(n),
+              duration: app.getLaptopAdDuration(n),
+              onToggle: (v) => context.read<AppProvider>()
+                  .setLaptopAdSetting('Ad${n}_sel', v ? 'true' : 'false'),
+              onDuration: (v) => context.read<AppProvider>()
+                  .setLaptopAdSetting('Ad${n}_dur', v),
+            );
+          }),
+
+          const SizedBox(height: 12),
+          const Divider(color: AppColors.surfaceBorder),
+          const SizedBox(height: 8),
+
+          // Control buttons
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: loop
+                      ? () {
+                          context.read<AppProvider>().stopAdLoop();
+                          onReturnToScores();
+                        }
+                      : null,
+                  icon: const Icon(Icons.stop_circle_outlined, size: 18),
+                  label: const Text('Return to Scores',
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: loop ? AppColors.warning : AppColors.surfaceHigh,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: (loop || !anySelected)
+                      ? null
+                      : () => context.read<AppProvider>().startAdLoop(),
+                  icon: const Icon(Icons.play_circle_outline, size: 18),
+                  label: const Text('Play Ads'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: (loop || !anySelected)
+                        ? AppColors.surfaceHigh
+                        : AppColors.success,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LaptopAdRow extends StatefulWidget {
+  final int adNumber;
+  final bool selected;
+  final String duration;
+  final ValueChanged<bool> onToggle;
+  final ValueChanged<String> onDuration;
+  const _LaptopAdRow({
+    required this.adNumber, required this.selected, required this.duration,
+    required this.onToggle, required this.onDuration,
+  });
+  @override
+  State<_LaptopAdRow> createState() => _LaptopAdRowState();
+}
+
+class _LaptopAdRowState extends State<_LaptopAdRow> {
+  late TextEditingController _dur;
+  @override
+  void initState() {
+    super.initState();
+    _dur = TextEditingController(text: widget.duration);
+  }
+  @override
+  void didUpdateWidget(_LaptopAdRow old) {
+    super.didUpdateWidget(old);
+    if (old.duration != widget.duration && !_dur.selection.isValid) {
+      _dur.text = widget.duration;
+    }
+  }
+  @override
+  void dispose() { _dur.dispose(); super.dispose(); }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 36,
+            child: Checkbox(
+              value: widget.selected,
+              onChanged: (v) => widget.onToggle(v ?? false),
+              activeColor: AppColors.accent,
+              side: const BorderSide(color: AppColors.textMuted),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              'Advertisement ${widget.adNumber}',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: widget.selected ? Colors.white : AppColors.textSecondary,
+              ),
+              maxLines: 1, overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          SizedBox(
+            width: 48,
+            child: TextField(
+              controller: _dur,
+              textAlign: TextAlign.center,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              style: const TextStyle(fontSize: 13, color: Colors.white),
+              decoration: const InputDecoration(
+                filled: true,
+                fillColor: AppColors.surfaceHigh,
+                border: OutlineInputBorder(borderSide: BorderSide.none),
+                contentPadding: EdgeInsets.symmetric(vertical: 8),
+              ),
+              onChanged: widget.onDuration,
+            ),
+          ),
+          // Fixed: no edit/delete buttons in laptop mode
+          const SizedBox(width: 4),
+          Container(
+            width: 64,
+            alignment: Alignment.center,
+            child: Text(
+              '→ PRGC3${widget.adNumber}',
+              style: const TextStyle(
+                fontSize: 9, color: AppColors.textMuted, fontFamily: 'monospace'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Normal mode: Custom Ads ───────────────────────────────────────────────────
+
+class _NormalAdsPanel extends StatelessWidget {
+  final VoidCallback onReturnToScores;
+  const _NormalAdsPanel({required this.onReturnToScores});
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +237,6 @@ class AdsPanel extends StatelessWidget {
                   style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
             )
           else ...[
-            // Header row
             const Row(
               children: [
                 SizedBox(width: 36),
@@ -45,7 +250,6 @@ class AdsPanel extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 4),
-            // List
             ...ads.asMap().entries.map((entry) {
               final idx = entry.key;
               final ad  = entry.value;
@@ -79,7 +283,8 @@ class AdsPanel extends StatelessWidget {
                         }
                       : null,
                   icon: const Icon(Icons.stop_circle_outlined, size: 18),
-                  label: const Text('Return to Scores'),
+                  label: const Text('Return to Scores',
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: loop ? AppColors.warning : AppColors.surfaceHigh,
                     foregroundColor: Colors.white,
@@ -110,7 +315,13 @@ class AdsPanel extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
-              onPressed: () => Navigator.pushNamed(context, '/adEditor'),
+              onPressed: () {
+                // Stop ads and return to scores before navigating to editor
+                final appP = context.read<AppProvider>();
+                appP.stopAdLoop();
+                appP.sendSportProgram();
+                Navigator.pushNamed(context, '/adEditor');
+              },
               icon: const Icon(Icons.add, size: 18),
               label: const Text('Create New Advertisement'),
               style: OutlinedButton.styleFrom(
@@ -188,7 +399,6 @@ class _AdRowState extends State<_AdRow> {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          // Checkbox
           SizedBox(
             width: 36,
             child: Checkbox(
@@ -198,18 +408,15 @@ class _AdRowState extends State<_AdRow> {
               side: const BorderSide(color: AppColors.textMuted),
             ),
           ),
-          // Ad name
           Expanded(
             child: Text(widget.adName,
               style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
+                fontSize: 14, fontWeight: FontWeight.w600,
                 color: widget.selected ? Colors.white : AppColors.textSecondary,
               ),
               maxLines: 1, overflow: TextOverflow.ellipsis,
             ),
           ),
-          // Duration entry
           SizedBox(
             width: 48,
             child: TextField(
@@ -228,14 +435,12 @@ class _AdRowState extends State<_AdRow> {
             ),
           ),
           const SizedBox(width: 4),
-          // Edit
           IconButton(
             icon: const Icon(Icons.edit_outlined, size: 18, color: AppColors.accent),
             onPressed: widget.onEdit,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
           ),
-          // Delete
           IconButton(
             icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.danger),
             onPressed: widget.onDelete,

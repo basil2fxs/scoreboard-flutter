@@ -15,21 +15,22 @@ class TimerWidget extends StatelessWidget {
     final app         = context.watch<AppProvider>();
     final isCountdown = app.config.timerCountdown;
     final isRunning   = app.timerRunning;
+    final isLaptop    = app.laptopScoring;
 
     return SectionCard(
       title: 'TIMER',
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Set Time button
           _HeaderBtn(
             label: 'Set Time',
             icon: Icons.timer_outlined,
             onTap: () => _showSetTimeDialog(context, app),
           ),
           const SizedBox(width: 6),
-          // Style / offset settings
-          SettingsIconButton(onTap: () => showTimerSettingsDialog(context)),
+          // Hide style settings in laptop mode
+          if (!isLaptop)
+            SettingsIconButton(onTap: () => showTimerSettingsDialog(context)),
         ],
       ),
       child: Column(
@@ -61,6 +62,26 @@ class TimerWidget extends StatelessWidget {
                   ),
                 ),
               ),
+              if (isLaptop) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.accent.withOpacity(0.18),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: AppColors.accent.withOpacity(0.45)),
+                  ),
+                  child: Text(
+                    'HW TIMER ${app.config.timerChannel}',
+                    style: const TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.8,
+                      color: AppColors.accent,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 8),
@@ -104,7 +125,6 @@ class TimerWidget extends StatelessWidget {
     );
   }
 
-  /// Shows the Set Time bottom sheet.
   void _showSetTimeDialog(BuildContext context, AppProvider app) {
     showModalBottomSheet(
       context: context,
@@ -115,16 +135,12 @@ class TimerWidget extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      // Proper StatefulWidget — has real mounted checks and correct
-      // InheritedElement dependency cleanup, preventing the
-      // 'dependents.isEmpty' assertion that StatefulBuilder can trigger
-      // when MediaQuery changes during sheet dismissal.
       builder: (_) => _SetTimerSheet(app: app),
     );
   }
 }
 
-// ─── Set Timer sheet (proper StatefulWidget to avoid StatefulBuilder bugs) ────
+// ─── Set Timer sheet ──────────────────────────────────────────────────────────
 
 class _SetTimerSheet extends StatefulWidget {
   final AppProvider app;
@@ -137,13 +153,15 @@ class _SetTimerSheetState extends State<_SetTimerSheet> {
   late bool _countdown;
   late TextEditingController _minsCtrl;
   late TextEditingController _secsCtrl;
+  late int _timerChannel;
   String? _minsError;
   String? _secsError;
 
   @override
   void initState() {
     super.initState();
-    _countdown = widget.app.config.timerCountdown;
+    _countdown    = widget.app.config.timerCountdown;
+    _timerChannel = widget.app.config.timerChannel;
     final targetSecs = _countdown ? widget.app.config.timerTargetSeconds : 0;
     _minsCtrl = TextEditingController(
         text: (targetSecs ~/ 60).toString().padLeft(2, '0'));
@@ -173,11 +191,12 @@ class _SetTimerSheetState extends State<_SetTimerSheet> {
           _minsError = mBlank ? 'Enter minutes' : null;
           _secsError = sBlank ? 'Enter seconds' : null;
         });
-        return; // stay open
+        return;
       }
     }
     final m = int.tryParse(_minsCtrl.text) ?? 0;
     final s = (int.tryParse(_secsCtrl.text) ?? 0).clamp(0, 59);
+    widget.app.setTimerChannel(_timerChannel);
     widget.app.setTimerTime(
       countdown: _countdown,
       totalSeconds: _countdown ? m * 60 + s : 0,
@@ -207,9 +226,8 @@ class _SetTimerSheetState extends State<_SetTimerSheet> {
 
   @override
   Widget build(BuildContext context) {
-    // MediaQuery.of(this widget's context) is properly managed by Flutter's
-    // element lifecycle — no stale dependency after route pop.
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final isLaptop    = widget.app.laptopScoring;
     return Padding(
       padding: EdgeInsets.fromLTRB(20, 20, 20, bottomInset + 24),
       child: Column(
@@ -323,6 +341,7 @@ class _SetTimerSheetState extends State<_SetTimerSheet> {
                 _QuickChip(label: '15:00', onTap: () => _applyQuick(15 * 60)),
                 _QuickChip(label: '20:00', onTap: () => _applyQuick(20 * 60)),
                 _QuickChip(label: '25:00', onTap: () => _applyQuick(25 * 60)),
+                _QuickChip(label: '40:00', onTap: () => _applyQuick(40 * 60)),
                 _QuickChip(label: '45:00', onTap: () => _applyQuick(45 * 60)),
               ],
             ),
@@ -342,6 +361,26 @@ class _SetTimerSheetState extends State<_SetTimerSheet> {
             ),
           ],
 
+          // ── Hardware Timer Channel (laptop mode) ────────────────────────
+          if (isLaptop) ...[
+            const SizedBox(height: 16),
+            const _SectionLabel('Hardware Timer Channel'),
+            const SizedBox(height: 8),
+            Row(children: [
+              _ChannelChip(
+                label: 'Timer 1',
+                selected: _timerChannel == 1,
+                onTap: () { if (mounted) setState(() => _timerChannel = 1); },
+              ),
+              const SizedBox(width: 10),
+              _ChannelChip(
+                label: 'Timer 2',
+                selected: _timerChannel == 2,
+                onTap: () { if (mounted) setState(() => _timerChannel = 2); },
+              ),
+            ]),
+          ],
+
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
@@ -358,14 +397,45 @@ class _SetTimerSheetState extends State<_SetTimerSheet> {
   }
 }
 
+// ─── Channel chip ──────────────────────────────────────────────────────────────
+
+class _ChannelChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _ChannelChip({required this.label, required this.selected, required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.accent : AppColors.surfaceHigh,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Center(
+            child: Text(label,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: selected ? Colors.white : AppColors.textSecondary,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // ─── Max-value input formatter ─────────────────────────────────────────────────
 
 class _MaxValueFormatter extends TextInputFormatter {
   final int max;
   const _MaxValueFormatter(this.max);
   @override
-  TextEditingValue formatEditUpdate(
-      TextEditingValue old, TextEditingValue val) {
+  TextEditingValue formatEditUpdate(TextEditingValue old, TextEditingValue val) {
     if (val.text.isEmpty) return val;
     final n = int.tryParse(val.text);
     if (n == null || n > max) return old;
@@ -373,14 +443,13 @@ class _MaxValueFormatter extends TextInputFormatter {
   }
 }
 
-// ─── Small header button (Set Time) ───────────────────────────────────────────
+// ─── Small header button ───────────────────────────────────────────────────────
 
 class _HeaderBtn extends StatelessWidget {
   final String label;
   final IconData icon;
   final VoidCallback onTap;
-  const _HeaderBtn(
-      {required this.label, required this.icon, required this.onTap});
+  const _HeaderBtn({required this.label, required this.icon, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -397,11 +466,8 @@ class _HeaderBtn extends StatelessWidget {
           children: [
             Icon(icon, size: 14, color: AppColors.textSecondary),
             const SizedBox(width: 4),
-            Text(label,
-                style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.bold)),
+            Text(label, style: const TextStyle(
+                fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.bold)),
           ],
         ),
       ),
@@ -415,8 +481,7 @@ class _TimerBtn extends StatelessWidget {
   final String label;
   final Color color;
   final VoidCallback onTap;
-  const _TimerBtn(
-      {required this.label, required this.color, required this.onTap});
+  const _TimerBtn({required this.label, required this.color, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -425,13 +490,11 @@ class _TimerBtn extends StatelessWidget {
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
         padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 13),
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         elevation: 0,
       ),
       child: Text(label,
-          style: const TextStyle(
-              fontWeight: FontWeight.bold, color: Colors.white)),
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
     );
   }
 }
@@ -456,9 +519,7 @@ class _QuickChip extends StatelessWidget {
         ),
         child: Text(label,
             style: const TextStyle(
-                fontSize: 13,
-                color: Colors.white,
-                fontWeight: FontWeight.bold)),
+                fontSize: 13, color: Colors.white, fontWeight: FontWeight.bold)),
       ),
     );
   }
@@ -470,12 +531,7 @@ class _SectionLabel extends StatelessWidget {
   final String text;
   const _SectionLabel(this.text);
   @override
-  Widget build(BuildContext context) => Text(
-        text,
-        style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textMuted,
-            letterSpacing: 0.8),
-      );
+  Widget build(BuildContext context) => Text(text,
+    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold,
+        color: AppColors.textMuted, letterSpacing: 0.8));
 }

@@ -423,6 +423,184 @@ void showAflQuarterSettingsDialog(BuildContext context) {
   );
 }
 
+// ─── Counter Channel Remapping ────────────────────────────────────────────────
+
+/// Fields per sport: list of (fieldKey, displayLabel) tuples.
+const Map<String, List<(String, String)>> _kSportCounterFields = {
+  'AFL': [
+    ('homeGoals',  'Home Goals'),
+    ('homePoints', 'Home Points'),
+    ('homeTotal',  'Home Total'),
+    ('awayGoals',  'Away Goals'),
+    ('awayPoints', 'Away Points'),
+    ('awayTotal',  'Away Total'),
+  ],
+  'Cricket': [
+    ('homeRuns',     'Home Runs'),
+    ('homeWickets',  'Home Wickets'),
+    ('awayRuns',     'Away Runs'),
+    ('awayWickets',  'Away Wickets'),
+    ('extras',       'Extras'),
+    ('overs',        'Overs'),
+  ],
+  'Basketball': [
+    ('homeScore',    'Home Points'),
+    ('awayScore',    'Away Points'),
+    ('homeTimeouts', 'Home Timeouts'),
+    ('awayTimeouts', 'Away Timeouts'),
+    ('homeFouls',    'Home Fouls'),
+    ('awayFouls',    'Away Fouls'),
+  ],
+};
+
+const List<(String, String)> _kSimpleSportFields = [
+  ('homeScore', 'Home Score'),
+  ('awayScore', 'Away Score'),
+];
+
+/// Opens a bottom sheet for remapping CNTS counter channels for [sport].
+void showCounterSettingsDialog(BuildContext context, String sport) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: AppColors.surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (ctx) => _CounterSettingsSheet(sport: sport),
+  );
+}
+
+class _CounterSettingsSheet extends StatefulWidget {
+  final String sport;
+  const _CounterSettingsSheet({required this.sport});
+  @override
+  State<_CounterSettingsSheet> createState() => _CounterSettingsSheetState();
+}
+
+class _CounterSettingsSheetState extends State<_CounterSettingsSheet> {
+  @override
+  Widget build(BuildContext context) {
+    final app    = context.read<AppProvider>();
+    final fields = _kSportCounterFields[widget.sport] ?? _kSimpleSportFields;
+
+    return StatefulBuilder(
+      builder: (ctx, setS) => Padding(
+        padding: EdgeInsets.fromLTRB(20, 20, 20,
+            MediaQuery.of(ctx).viewInsets.bottom + 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Handle
+            Center(
+              child: Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceBorder,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text('Counter Channels — ${widget.sport}',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+            const SizedBox(height: 4),
+            const Text('Remap which CNTS number each field uses.',
+              style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+            const SizedBox(height: 20),
+
+            // Column headers
+            Row(children: [
+              const SizedBox(width: 130),
+              ...List.generate(6, (i) => Expanded(
+                child: Text('${i + 1}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textMuted)),
+              )),
+            ]),
+            const SizedBox(height: 6),
+
+            // One row per field
+            ...fields.map(((String, String) pair) {
+              final field = pair.$1;
+              final label = pair.$2;
+              final current = app.counterFor(widget.sport, field);
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 130,
+                      child: Text(label,
+                        style: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w500)),
+                    ),
+                    ...List.generate(6, (i) {
+                      final n = i + 1;
+                      final selected = current == n;
+                      return Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            app.setCounterChannel(widget.sport, field, n);
+                            setS(() {});
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 2),
+                            padding: const EdgeInsets.symmetric(vertical: 9),
+                            decoration: BoxDecoration(
+                              color: selected ? AppColors.accent : AppColors.surfaceHigh,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text('$n',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: selected ? Colors.white : AppColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              );
+            }),
+
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      app.clearCounterChannels(widget.sport);
+                      setS(() {});
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.textMuted,
+                      side: const BorderSide(color: AppColors.surfaceBorder),
+                    ),
+                    child: const Text('Reset Defaults'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
+                    child: const Text('Done'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ─── Stepper widget ────────────────────────────────────────────────────────────
 class _Stepper extends StatelessWidget {
   final int value;

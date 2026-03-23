@@ -11,7 +11,7 @@ class AdRow {
     this.color  = '7',
     this.size   = '2',
     this.hAlign = '1',
-    this.vAlign = '1',
+    this.vAlign = '2',  // '2' = Bottom on TF-F6
   });
 
   factory AdRow.fromJson(Map<String, dynamic> j) => AdRow(
@@ -19,7 +19,7 @@ class AdRow {
     color : j['color']   as String? ?? '7',
     size  : j['size']    as String? ?? '2',
     hAlign: j['h_align'] as String? ?? '1',
-    vAlign: j['v_align'] as String? ?? '1',
+    vAlign: j['v_align'] as String? ?? '2',
   );
 
   Map<String, dynamic> toJson() => {
@@ -43,31 +43,38 @@ class Advertisement {
   final String name;
   final List<AdRow> rows;
   final bool border;
+  /// Total display rows chosen in the editor (1-4), including empty rows.
+  /// Used to select the correct TF-F6 program: {1:7, 2:9, 3:11, 4:13} + border?1:0
+  final int numRows;
 
   const Advertisement({
     required this.name,
     required this.rows,
-    this.border = false,
+    this.border  = false,
+    this.numRows = 0,   // 0 = fall back to rows.length
   });
 
   factory Advertisement.fromJson(Map<String, dynamic> j) => Advertisement(
-    name  : j['name']   as String? ?? 'Ad',
-    border: j['border'] as bool?   ?? false,
-    rows  : (j['rows'] as List<dynamic>? ?? [])
+    name    : j['name']     as String? ?? 'Ad',
+    border  : j['border']   as bool?   ?? false,
+    numRows : j['num_rows'] as int?    ?? 0,
+    rows    : (j['rows'] as List<dynamic>? ?? [])
         .map((r) => AdRow.fromJson(r as Map<String, dynamic>))
         .toList(),
   );
 
   Map<String, dynamic> toJson() => {
-    'name'  : name,
-    'border': border,
-    'rows'  : rows.map((r) => r.toJson()).toList(),
+    'name'    : name,
+    'border'  : border,
+    'num_rows': numRows,
+    'rows'    : rows.map((r) => r.toJson()).toList(),
   };
 
-  Advertisement copyWith({String? name, List<AdRow>? rows, bool? border}) => Advertisement(
-    name  : name   ?? this.name,
-    rows  : rows   ?? this.rows,
-    border: border ?? this.border,
+  Advertisement copyWith({String? name, List<AdRow>? rows, bool? border, int? numRows}) => Advertisement(
+    name    : name    ?? this.name,
+    rows    : rows    ?? this.rows,
+    border  : border  ?? this.border,
+    numRows : numRows ?? this.numRows,
   );
 }
 

@@ -11,14 +11,14 @@ class DisplayStyle {
     this.color  = '7',
     this.size   = '2',
     this.hAlign = '1',
-    this.vAlign = '1',
+    this.vAlign = '2',
   });
 
   factory DisplayStyle.fromJson(Map<String, dynamic> j) => DisplayStyle(
     color : j['color']   as String? ?? '7',
     size  : j['size']    as String? ?? '2',
     hAlign: j['h_align'] as String? ?? '1',
-    vAlign: j['v_align'] as String? ?? '1',
+    vAlign: j['v_align'] as String? ?? '2',
   );
 
   Map<String, dynamic> toJson() => {
@@ -36,10 +36,12 @@ class DisplayStyle {
         vAlign: vAlign ?? this.vAlign,
       );
 
-  static const teamDefault  = DisplayStyle(color: '1', size: '2', hAlign: '3', vAlign: '2');
-  static const timerDefault = DisplayStyle(color: '7', size: '2', hAlign: '3', vAlign: '1');
-  static const shotDefault  = DisplayStyle(color: '7', size: '2', hAlign: '3', vAlign: '1');
-  static const quarterDefault = DisplayStyle(color: '7', size: '2', hAlign: '3', vAlign: '1');
+  // Team names default vAlign='3' (Top on TF-F6).
+  // Timers / shot clock / quarter default vAlign='2' (Bottom on TF-F6).
+  static const teamDefault    = DisplayStyle(color: '1', size: '2', hAlign: '3', vAlign: '3');
+  static const timerDefault   = DisplayStyle(color: '7', size: '2', hAlign: '3', vAlign: '2');
+  static const shotDefault    = DisplayStyle(color: '7', size: '2', hAlign: '3', vAlign: '2');
+  static const quarterDefault = DisplayStyle(color: '7', size: '2', hAlign: '3', vAlign: '2');
 }
 
 /// Full serialisable app config — written to device storage on every change.
@@ -69,10 +71,12 @@ class AppConfig {
   final DisplayStyle timerStyle;
   final int timerOffsetAfl;
   final int timerOffsetDefault;
+  final int timerChannel;        // Hardware timer channel (1 or 2) for laptop mode
 
   // ── Shot clock ────────────────────────────────────────────────────────────
   final int shotClockSeconds;
   final DisplayStyle shotClockStyle;
+  final int shotClockChannel;    // Hardware shot clock timer channel (1 or 2) for laptop mode
 
   // ── AFL ───────────────────────────────────────────────────────────────────
   final String aflHomeName;
@@ -105,9 +109,20 @@ class AppConfig {
   final bool singleColour;
   final bool ultraWide;
 
+  // ── Laptop mode ───────────────────────────────────────────────────────────
+  final bool laptopScoring;
+
+  // ── Counter channel remapping (sport/field → CNT number) ─────────────────
+  // e.g. 'Basketball/homeScore' → 5
+  final Map<String, int> counterChannels;
+
   // ── Advertisements ────────────────────────────────────────────────────────
   final List<Advertisement> advertisements;
   final Map<String, AdSelection> adSelections;
+
+  // ── Laptop mode fixed ad selections (Ad1–Ad5) ─────────────────────────────
+  // 'Ad1' → true/false (selected), 'Ad1_dur' → '10' (seconds)
+  final Map<String, String> laptopAdSettings;
 
   const AppConfig({
     this.displayWidth,
@@ -126,8 +141,10 @@ class AppConfig {
     this.timerStyle           = DisplayStyle.timerDefault,
     this.timerOffsetAfl       = 1,
     this.timerOffsetDefault   = 0,
+    this.timerChannel         = 1,
     this.shotClockSeconds     = 30,
     this.shotClockStyle       = DisplayStyle.shotDefault,
+    this.shotClockChannel     = 2,
     this.aflHomeName          = 'HOME',
     this.aflAwayName          = 'AWAY',
     this.aflHomeGoals         = 0,
@@ -151,8 +168,13 @@ class AppConfig {
     this.awayFouls            = 0,
     this.singleColour         = false,
     this.ultraWide            = false,
+    this.laptopScoring        = false,
+    this.counterChannels      = const {},
     this.advertisements       = const [],
     this.adSelections         = const {},
+    this.laptopAdSettings     = const {'Ad1_sel': 'true', 'Ad1_dur': '4',
+                                       'Ad2_dur': '4', 'Ad3_dur': '4',
+                                       'Ad4_dur': '4', 'Ad5_dur': '4'},
   });
 
   bool get isDisplayConfigured =>
@@ -183,8 +205,10 @@ class AppConfig {
       timerStyle        : _style('timer_style',        DisplayStyle.timerDefault),
       timerOffsetAfl    : j['timer_offset_afl']      as int? ?? 1,
       timerOffsetDefault: j['timer_offset_default']  as int? ?? 0,
+      timerChannel      : j['timer_channel']         as int? ?? 1,
       shotClockSeconds  : j['shot_clock_seconds']    as int? ?? 30,
       shotClockStyle    : _style('shot_clock_style',   DisplayStyle.shotDefault),
+      shotClockChannel  : j['shot_clock_channel']    as int? ?? 2,
       aflHomeName       : j['afl_home_name']         as String? ?? 'HOME',
       aflAwayName       : j['afl_away_name']         as String? ?? 'AWAY',
       aflHomeGoals      : j['afl_home_goals']        as int? ?? 0,
@@ -208,11 +232,16 @@ class AppConfig {
       awayFouls         : j['away_fouls']            as int? ?? 0,
       singleColour      : j['single_colour']         as bool? ?? false,
       ultraWide         : j['ultra_wide']            as bool? ?? false,
+      laptopScoring     : j['laptop_scoring']        as bool? ?? false,
+      counterChannels   : (j['counter_channels'] as Map<String, dynamic>? ?? {})
+          .map((k, v) => MapEntry(k, v as int)),
       advertisements    : (j['advertisements'] as List<dynamic>? ?? [])
           .map((e) => Advertisement.fromJson(e as Map<String, dynamic>))
           .toList(),
       adSelections      : (j['ad_selections'] as Map<String, dynamic>? ?? {})
           .map((k, v) => MapEntry(k, AdSelection.fromJson(v as Map<String, dynamic>))),
+      laptopAdSettings  : (j['laptop_ad_settings'] as Map<String, dynamic>? ?? {})
+          .map((k, v) => MapEntry(k, v as String)),
     );
   }
 
@@ -233,8 +262,10 @@ class AppConfig {
     'timer_style'          : timerStyle.toJson(),
     'timer_offset_afl'     : timerOffsetAfl,
     'timer_offset_default' : timerOffsetDefault,
+    'timer_channel'        : timerChannel,
     'shot_clock_seconds'   : shotClockSeconds,
     'shot_clock_style'     : shotClockStyle.toJson(),
+    'shot_clock_channel'   : shotClockChannel,
     'afl_home_name'        : aflHomeName,
     'afl_away_name'        : aflAwayName,
     'afl_home_goals'       : aflHomeGoals,
@@ -258,8 +289,11 @@ class AppConfig {
     'away_fouls'           : awayFouls,
     'single_colour'        : singleColour,
     'ultra_wide'           : ultraWide,
+    'laptop_scoring'       : laptopScoring,
+    'counter_channels'     : counterChannels,
     'advertisements'       : advertisements.map((a) => a.toJson()).toList(),
     'ad_selections'        : adSelections.map((k, v) => MapEntry(k, v.toJson())),
+    'laptop_ad_settings'   : laptopAdSettings,
   };
 
   AppConfig copyWith({
@@ -269,7 +303,9 @@ class AppConfig {
     DisplayStyle? teamStyle, DisplayStyle? aflTeamStyle, DisplayStyle? cricketTeamStyle,
     int? timerSeconds, bool? timerCountdown, int? timerTargetSeconds,
     DisplayStyle? timerStyle, int? timerOffsetAfl, int? timerOffsetDefault,
+    int? timerChannel,
     int? shotClockSeconds, DisplayStyle? shotClockStyle,
+    int? shotClockChannel,
     String? aflHomeName, String? aflAwayName,
     int? aflHomeGoals, int? aflHomePoints, int? aflAwayGoals, int? aflAwayPoints,
     int? aflQuarter, DisplayStyle? aflQuarterStyle,
@@ -279,8 +315,11 @@ class AppConfig {
     int? cricketExtras, int? cricketOvers, int? cricketBalls,
     int? homeTimeouts, int? awayTimeouts, int? homeFouls, int? awayFouls,
     bool? singleColour, bool? ultraWide,
+    bool? laptopScoring,
+    Map<String, int>? counterChannels,
     List<Advertisement>? advertisements,
     Map<String, AdSelection>? adSelections,
+    Map<String, String>? laptopAdSettings,
     // Allow explicitly setting nullable displayWidth/Height to null via sentinel
     bool clearDisplay = false,
   }) {
@@ -301,8 +340,10 @@ class AppConfig {
       timerStyle        : timerStyle        ?? this.timerStyle,
       timerOffsetAfl    : timerOffsetAfl    ?? this.timerOffsetAfl,
       timerOffsetDefault: timerOffsetDefault?? this.timerOffsetDefault,
+      timerChannel      : timerChannel      ?? this.timerChannel,
       shotClockSeconds  : shotClockSeconds  ?? this.shotClockSeconds,
       shotClockStyle    : shotClockStyle    ?? this.shotClockStyle,
+      shotClockChannel  : shotClockChannel  ?? this.shotClockChannel,
       aflHomeName       : aflHomeName       ?? this.aflHomeName,
       aflAwayName       : aflAwayName       ?? this.aflAwayName,
       aflHomeGoals      : aflHomeGoals      ?? this.aflHomeGoals,
@@ -326,8 +367,11 @@ class AppConfig {
       awayFouls         : awayFouls         ?? this.awayFouls,
       singleColour      : singleColour      ?? this.singleColour,
       ultraWide         : ultraWide         ?? this.ultraWide,
+      laptopScoring     : laptopScoring     ?? this.laptopScoring,
+      counterChannels   : counterChannels   ?? this.counterChannels,
       advertisements    : advertisements    ?? this.advertisements,
       adSelections      : adSelections      ?? this.adSelections,
+      laptopAdSettings  : laptopAdSettings  ?? this.laptopAdSettings,
     );
   }
 }
