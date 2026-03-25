@@ -46,3 +46,17 @@ app.*.map.json
 android/key.properties
 *.jks
 *.keystore
+# ── Source code privacy ────────────────────────────────────────────────────────
+# The Flutter source, platform code, and tests are not published to the
+# public repository. Only the support pages, licence, and version files
+# are tracked publicly.
+lib/
+test/
+test_driver/
+integration_test/
+android/app/src/
+ios/Runner/
+ios/Pods/
+ios/Flutter/
+ios/RunnerTests/
+.claude/
