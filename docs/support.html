@@ -219,7 +219,6 @@
   <p>Everything you need to set up, operate, and troubleshoot your LED scoreboard controller.</p>
   <div class="hero-badges">
     <span class="badge green">● v1.1.0</span>
-    <span class="badge blue">TF-F6 Compatible</span>
     <span class="badge">Android &amp; iOS</span>
   </div>
 </div>
@@ -250,7 +249,7 @@
         <div class="acc-body">
           <h4>Requirements</h4>
           <ul>
-            <li>TF-F6 LED scoreboard controller powered on</li>
+            <li>Scoreboard controller powered on</li>
             <li>Your phone connected to the <strong>same WiFi network</strong> as the scoreboard</li>
             <li>Scoreboard controller IP: <span class="cmd">192.168.1.252</span> (factory default)</li>
           </ul>
@@ -478,7 +477,7 @@
     </div>
     <div class="accordion">
 
-      <div class="acc-item" data-tags="laptop mode enable what is icatcher software">
+      <div class="acc-item" data-tags="laptop mode enable what is icatcher software counter timer special area commands">
         <button class="acc-trigger">
           <span class="acc-title">What is Laptop Mode and when to use it</span>
           <span class="acc-chevron">▼</span>
@@ -486,8 +485,8 @@
         <div class="acc-body">
           <p>Laptop Mode is for setups where an <strong>iCatcher Laptop</strong> computer is the primary controller of the scoreboard's display. In this mode:</p>
           <ul>
-            <li>The app sends <strong>counter values</strong> (CNTS commands) to the hardware counters — iCatcher Laptop reads these and updates its own display.</li>
-            <li>The app sends <strong>hardware timer</strong> commands (TIMS/TIMP/TIMR) instead of software RAMT timer sends.</li>
+            <li>The app sends <strong>counter commands</strong> to the hardware counters — iCatcher Laptop reads these and updates its own display.</li>
+            <li>The app sends <strong>hardware timer commands</strong> instead of software special area timer sends.</li>
             <li>RAMT slot assignments are irrelevant — the laptop handles layout.</li>
           </ul>
           <div class="tip blue"><span class="tip-icon">💡</span>If you use iCatcher Scoreboard in standalone mode (no laptop), keep Laptop Mode OFF.</div>
@@ -507,13 +506,13 @@
         </div>
       </div>
 
-      <div class="acc-item" data-tags="page mapping laptop sport ad page number prgc">
+      <div class="acc-item" data-tags="page mapping laptop sport ad page number">
         <button class="acc-trigger">
           <span class="acc-title">Page Mapping — sport and ad page numbers</span>
           <span class="acc-chevron">▼</span>
         </button>
         <div class="acc-body">
-          <p>Page Mapping lets you configure which scoreboard page (PRGC command) each sport and ad slot switches to when selected.</p>
+          <p>Page Mapping lets you configure which scoreboard page each sport and ad slot switches to when selected.</p>
           <div class="tip red"><span class="tip-icon">⚠️</span><strong>Do not change these settings unless specifically instructed to do so.</strong> Incorrect mapping will display the wrong content on the scoreboard.</div>
           <h4>Sports</h4>
           <ul>
@@ -543,7 +542,7 @@
     </div>
     <div class="accordion">
 
-      <div class="acc-item" data-tags="remapping mode counter channels cnts hardware reassign">
+      <div class="acc-item" data-tags="remapping mode counter channels hardware reassign">
         <button class="acc-trigger">
           <span class="acc-title">Remapping Mode — counter channels &amp; display slots</span>
           <span class="acc-chevron">▼</span>
@@ -553,9 +552,9 @@
           <h4>Enabling</h4>
           <div class="step"><div class="step-num">1</div><div class="step-text">Settings → <strong>ADVANCED</strong> → toggle <strong>Remapping Mode</strong> ON. This adds a <strong>"Remapping"</strong> button to each sport screen's top bar.</div></div>
           <div class="step"><div class="step-num">2</div><div class="step-text">Enter a sport screen → tap <strong>Remapping</strong> to open the mapping page for that sport.</div></div>
-          <h4>Counter Channels (CNTS)</h4>
+          <h4>Counter Channels (Counter Commands)</h4>
           <p>Assigns which hardware counter slot (1–6) receives each score value. Select the channel number next to each field name.</p>
-          <h4>RAMT Display Slots (normal mode only)</h4>
+          <h4>Special Area Display Slots (normal mode only)</h4>
           <p>Assigns which LED board display slots (1–8) each element occupies. Every position can be set independently — they do not need to be consecutive.</p>
           <ul>
             <li><strong>Home/Away Team Name:</strong> 2 slots each (Part 1, Part 2)</li>
@@ -622,10 +621,10 @@
         </button>
         <div class="acc-body">
           <h4>Check these in order</h4>
-          <div class="step"><div class="step-num">1</div><div class="step-text"><strong>Same WiFi network?</strong> Your phone and the TF-F6 controller must be on the same WiFi. Check your phone's WiFi settings.</div></div>
-          <div class="step"><div class="step-num">2</div><div class="step-text"><strong>Controller IP correct?</strong> The factory IP is <span class="cmd">192.168.1.252</span>. If your router has changed it, check the controller's network settings or your router's DHCP table.</div></div>
+          <div class="step"><div class="step-num">1</div><div class="step-text"><strong>Same WiFi network?</strong> Your phone and the scoreboard controller must be on the same WiFi. Check your phone's WiFi settings.</div></div>
+          <div class="step"><div class="step-num">2</div><div class="step-text"><strong>Controller IP correct?</strong> The factory default IP is <span class="cmd">192.168.1.252</span>. If your router has changed it, check the controller's network settings or your router's DHCP table.</div></div>
           <div class="step"><div class="step-num">3</div><div class="step-text"><strong>Client isolation disabled?</strong> Some routers (especially guest networks) block devices from communicating with each other. Disable "AP Isolation" or "Client Isolation" in your router settings.</div></div>
-          <div class="step"><div class="step-num">4</div><div class="step-text"><strong>Controller powered on?</strong> The TF-F6 must be fully booted. Try power-cycling it and waiting 30 seconds.</div></div>
+          <div class="step"><div class="step-num">4</div><div class="step-text"><strong>Controller powered on?</strong> The controller must be fully booted. Try power-cycling it and waiting 30 seconds.</div></div>
           <div class="step"><div class="step-num">5</div><div class="step-text"><strong>Firewall?</strong> The app communicates on UDP port <span class="cmd">5959</span>. Ensure no firewall is blocking this port.</div></div>
           <div class="tip blue"><span class="tip-icon">💡</span>Use Demo Mode to verify all app features work correctly while you resolve network issues.</div>
         </div>
@@ -716,7 +715,7 @@
     <div class="contact-card">
       <h3>Still need help?</h3>
       <p>If you've worked through the troubleshooting steps above and still have an issue,<br>reach out and we'll get back to you as soon as possible.</p>
-      <a href="mailto:contact@icatcher.com.au">✉️  contact@icatcher.com.au</a>
+      <a href="mailto:joy.zen9104@eagereverest.com">✉️  joy.zen9104@eagereverest.com</a>
     </div>
   </div>
 
@@ -724,8 +723,7 @@
 
 <!-- ── Footer ──────────────────────────────────────────────────────────────── -->
 <footer>
-  <p>iCatcher Scoreboard Control &nbsp;•&nbsp; v1.1.0 &nbsp;•&nbsp; © 2025 iCatcher. All rights reserved.</p>
-  <p style="margin-top:6px;">TF-F6 LED Controller Compatible</p>
+  <p>iCatcher Scoreboard Control &nbsp;•&nbsp; v1.1.0 &nbsp;•&nbsp; © 2026 iCatcher Digital Signs. All rights reserved.</p>
 </footer>
 
 <!-- ── Script ──────────────────────────────────────────────────────────────── -->
