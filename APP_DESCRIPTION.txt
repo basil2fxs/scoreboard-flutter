@@ -1,127 +1,66 @@
-================================================================================
-  iCatcher Scoreboard Control — App Description
-  For use on: Google Play / App Store listings, promotional material
-================================================================================
-
-
-── SHORT DESCRIPTION (80 characters max — for Google Play short description) ──
-
-Control your LED scoreboard wirelessly from your phone or tablet.
-
-
-── MEDIUM DESCRIPTION (for App Store subtitle / tagline) ──
-
-Professional LED scoreboard control for sports venues — over Wi-Fi.
-
-
-── FULL DESCRIPTION (3,329 / 4,000 chars) ──────────────────────────────────────
-
-iCatcher Scoreboard Control puts complete control of your LED scoreboard in the palm of your hand. Designed for sports venues, community clubs, and event operators, the app lets you manage scores, timers, shot clocks, and advertising displays from your phone or tablet — wirelessly over your local Wi-Fi network. No cables. No complicated software. No laptop required. Just open the app, connect, and start scoring.
+iCatcher Scoreboard Control puts complete control of your LED scoreboard in the palm of your hand. Designed for sports venues, community clubs, and event operators, the app lets you manage scores, timers, shot clocks, and advertising displays from your phone or tablet — wirelessly over your local Wi-Fi network. No cables. No complicated software. Just open the app and start scoring.
 
 SPORTS SUPPORTED
-• AFL — goals, points, full score totals & quarter display
-• Basketball — home & away scores, game timer & shot clock
-• Hockey — home & away scores, game timer & shot clock
-• Soccer — home & away scores & game timer
-• Rugby — home & away scores & game timer
+• AFL — goals, points, totals & quarter display
+• Basketball — scores, game timer & shot clock
+• Hockey — scores, game timer & shot clock
+• Soccer — scores & game timer
+• Rugby — scores & game timer
 • Cricket — runs, wickets, extras, overs & balls
 
-LIVE SCORING
-Tap + or − to instantly update scores on the board. Every change sends the moment you tap — no delay, no confirm button, no extra steps. Scores automatically save and restore if you close and reopen the app. After 12 hours of no use, scores automatically reset to zero so you never start a new game with stale numbers from the day before.
+SCORING
+Tap + or − to instantly update scores. Every change sends the moment you tap — no delay, no extra steps. Scores save automatically and reset to zero after 12 hours of inactivity so you never start a new game with yesterday's numbers.
 
 TIMER & SHOT CLOCK
-Start, pause, stop, and reset the game timer with a single tap. Use Set Time to enter any custom duration. Choose count-up or count-down mode to suit your sport. Basketball and Hockey include a fully independent shot clock — start, pause, and reset it separately from the main game timer without interrupting play.
+Start, pause, stop, and reset the game timer with one tap. Set any custom duration. Choose count-up or count-down mode. Basketball and Hockey include a fully independent shot clock.
 
 TEAM NAMES
-Enter home and away team names directly on the scoring screen. Customise the text size, colour, and alignment to suit your scoreboard's layout and your club's branding. Names save automatically and reappear next time you open the app.
+Enter home and away team names on any scoring screen. Customise text size, colour, and alignment to match your board layout. Names save automatically.
 
 ADVERTISEMENTS
-Create up to 5 advertisement slots, each with up to 4 rows of custom text. Set the text size, colour, and horizontal alignment per row. Add a border for emphasis. Select which ads to include in the rotation, then tap Play Ads — the board begins cycling through them automatically. Tap Return to Scores at any time to instantly switch back to the live game display. All ads save permanently to your device and are never lost after an app update.
+Create up to 5 advertisement slots with custom text across up to 4 rows each. Set text size, colour, and alignment per row. Tap Play Ads to cycle them on the board. Tap Return to Scores to switch back instantly. All ads save permanently and survive app updates.
 
 DISPLAY SETUP
-Enter your scoreboard's pixel width and height once in Settings. The app automatically formats all text and layout to fill your board correctly. Supports standard landscape, ultra-wide, and single-colour LED displays of any size.
+Enter your scoreboard's pixel dimensions once in Settings. The app automatically formats all text to fit your board. Supports standard, ultra-wide, and single-colour displays.
 
 DEMO MODE
-No scoreboard on hand? Enable Demo Mode from the home screen. Every feature works exactly as normal — scores, timer, ads, team names — but no commands are sent. Perfect for training new operators, testing layouts, or demoing the app before game day.
+No scoreboard? Enable Demo Mode to explore every feature safely — perfect for training operators before game day.
 
 LAPTOP MODE
-For venues running iCatcher Laptop software as the display controller, Laptop Mode integrates the app directly with the software. Scores and timer are sent as counter and timer commands that iCatcher Laptop reads in real time and renders on screen. Includes advanced Page Mapping to control which display page loads for each sport and advertisement.
+For venues running iCatcher Laptop software. Scores and timers are sent as counter and timer commands directly to the controller. Includes Page Mapping to control which display page loads for each sport and advertisement.
 
 RELIABLE & PRIVATE
-All settings, team names, and advertisements are stored permanently on your device — not in the cloud, not on a server. The app never collects, transmits, or shares any personal data. No accounts required. No subscriptions. No internet connection needed — everything runs over your local Wi-Fi network.
+All settings, team names, and ads are stored permanently on your device. No accounts. No subscriptions. No internet required — everything runs over your local Wi-Fi. The app never collects or shares any personal data.
 
+---
 
-── BASIC SETUP (for help guides, FAQs, store listing Q&A) ──────────────────────
+BASIC SETUP
 
-GETTING CONNECTED
-1. Power on your scoreboard controller and connect it to your venue Wi-Fi.
-2. Connect your phone or tablet to the same Wi-Fi network.
-3. Open iCatcher Scoreboard Control.
-4. Tap "Connect to Scoreboard" on the home screen.
-5. When the button changes to a green "Connected" banner, you're ready to go.
+Connect: Power on the scoreboard, join the same Wi-Fi on your device, tap Connect to Scoreboard. The button turns green when ready.
 
-Note: The default controller IP address is 192.168.1.252. If your network uses
-a different address, enter it in Settings before connecting.
+Start scoring: Tap Select Sport, choose your sport, tap Open Scoring, then use + and − to update scores.
 
-STARTING A GAME
-1. Connect to the scoreboard (or enable Demo Mode for practice).
-2. Tap "Select Sport" and choose your sport.
-3. Tap "Open Scoring" to enter the scoring screen.
-4. Use + and − to update scores — the board updates instantly.
+Set team names: Tap the Home or Away field on any scoring screen and type the name.
 
-SETTING TEAM NAMES
-1. On any scoring screen, find the Team Names card.
-2. Tap the Home or Away text field and type the team name.
-3. The name sends to the scoreboard immediately and is saved automatically.
+Use the timer: Tap Set Time, enter a duration, choose Count Down or Count Up, then tap ▶ to start.
 
-USING THE TIMER
-1. On the scoring screen, find the Timer card.
-2. Tap Set Time to enter your desired start time (e.g. 20:00 for 20 minutes).
-3. Choose Count Down or Count Up mode.
-4. Tap ▶ to start. Tap ⏸ to pause. Tap ⏹ to stop and reset.
+Create an ad: Tap + New Ad, choose row count, enter text, set size/colour/alignment, tap Save.
 
-CREATING AN ADVERTISEMENT
-1. From the home screen, tap "Manage" and go to the ADVERTISEMENTS section.
-2. Tap "+ New Ad" to create a new advertisement.
-3. Choose the number of rows (1–4) and whether to show a border.
-4. Enter your text for each row and set the size, colour, and alignment.
-5. Tap Save. Your ad appears in the list and is saved permanently.
+Play ads: Select the ads you want, tap Play Ads. Tap Return to Scores to go back to the game.
 
-PLAYING ADVERTISEMENTS
-1. On the scoring or manage screen, go to the ADVERTISEMENTS card.
-2. Tap each ad you want to include (they highlight when selected).
-3. Tap "Play Ads" — the scoreboard begins cycling through your selected ads.
-4. Tap "Return to Scores" to switch the board back to the live sport layout.
+---
 
-CONFIGURING DISPLAY SIZE
-1. Tap Settings (⚙) on the home screen.
-2. Under PIXEL SIZE OF SCREEN, enter your scoreboard's width and height in pixels.
-3. Tap Save. The app now formats all text to fit your board correctly.
+WHAT'S NEW — v1.1.0
+• Ads and settings now save permanently across all app updates
+• Scores auto-reset after 12 hours of inactivity
+• Remapping: freely assign any display slot to any position
+• Laptop Mode with full iCatcher Laptop software integration
+• Page Mapping for per-sport and per-ad display control
+• UDP Timing controls for command speed adjustment
+• Demo Mode shown as a clear status banner
 
+---
 
-── KEYWORDS (for App Store keyword field) ───────────────────────────────────────
-
-scoreboard, sports scoreboard, LED scoreboard, score keeper, score controller,
-AFL score, basketball score, cricket score, hockey score, soccer score,
-timer, shot clock, sports timer, venue scoreboard, Wi-Fi scoreboard,
-digital scoreboard, advertising display, sports venue, score app, game score
-
-
-── WHAT'S NEW — v1.1.0 (for update release notes) ───────────────────────────────
-
-• Advertisements now save permanently to your device across all app updates
-• Automatic score reset after 12 hours of inactivity — no stale scores the next morning
-• Advanced Remapping: freely assign any display slot to any scoreboard position
-• Laptop Mode: full iCatcher Laptop software integration with hardware timer and counter commands
-• Page Mapping: configure which scoreboard page each sport and ad switches to
-• UDP Timing controls: adjust command speed and boot delay for your hardware
-• Connect button now stays a consistent size across all connection states
-• Demo Mode now shows clearly as a single status banner
-
-
-================================================================================
-  Support:  https://basil2fxs.github.io/scoreboard-flutter/support.html
-  Privacy:  https://basil2fxs.github.io/scoreboard-flutter/privacy-policy.html
-  Contact:  joy.zen9104@eagereverest.com
-  © 2026 iCatcher Digital Signs. All rights reserved.
-================================================================================
+Support: https://basil2fxs.github.io/scoreboard-flutter/support.html
+Contact: joy.zen9104@eagereverest.com
+© 2026 iCatcher. All rights reserved.
