@@ -3,13 +3,15 @@ import 'dart:io';
 
 /// Handles all UDP communication with the TF-F6 LED controller.
 ///
-/// Commands are queued and dispatched with a 120 ms inter-command delay
-/// to match the Python app behaviour and avoid overwhelming the controller.
+/// Commands are queued and dispatched with a configurable inter-command delay.
+/// Default is 120 ms, matching the Python app behaviour.
 class UdpService {
   static const String controllerIp   = '192.168.1.252';
   static const int    controllerPort = 5959;
-  static const Duration _cmdDelay    = Duration(milliseconds: 120);
   static const Duration _testTimeout = Duration(seconds: 2);
+
+  /// Gap between consecutive queued commands. Tune via UDP Timing settings.
+  int commandDelayMs = 120;
 
   // Queue
   final _queue = <String>[];
@@ -84,7 +86,7 @@ class UdpService {
     while (_queue.isNotEmpty) {
       final cmd = _queue.removeAt(0);
       await _sendNow(cmd);
-      await Future.delayed(_cmdDelay);
+      await Future.delayed(Duration(milliseconds: commandDelayMs));
     }
     _processing = false;
   }

@@ -8,6 +8,7 @@ import '../widgets/score_card.dart';
 import '../widgets/section_card.dart';
 import '../widgets/ads_panel.dart';
 import '../widgets/settings_dialogs.dart';
+import 'remapping_screen.dart';
 
 class SoccerScreen extends StatefulWidget {
   const SoccerScreen({super.key});
@@ -21,9 +22,8 @@ class _SoccerScreenState extends State<SoccerScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final app = context.read<AppProvider>();
-      app.initTimerForSport('Soccer/ Universal');
-      app.sendSportProgram();
-      Future.delayed(const Duration(milliseconds: 50), app.resendAll);
+      app.initTimerForSport('Soccer');
+      app.sendZeroThenResend('Soccer');
     });
   }
 
@@ -32,32 +32,36 @@ class _SoccerScreenState extends State<SoccerScreen> {
     final app = context.watch<AppProvider>();
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Soccer/ Universal'),
+        title: const Text('Soccer'),
         leading: BackButton(onPressed: () {
           app.backToHome();
           Navigator.pushReplacementNamed(context, '/home');
         }),
+        actions: [
+          if (app.remappingMode)
+            TextButton.icon(
+              onPressed: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const RemappingScreen(sport: 'Soccer'))),
+              icon: const Icon(Icons.cable_outlined, size: 18, color: AppColors.accent),
+              label: const Text('Remapping',
+                  style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold)),
+            ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.only(bottom: 24),
         children: [
-          if (!app.laptopScoring) const TeamNamesCard(sport: 'Soccer/ Universal'),
+          if (!app.laptopScoring) const TeamNamesCard(sport: 'Soccer'),
           const TimerWidget(),
           SectionCard(
             title: 'SCORES',
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SettingsIconButton(
-                  onTap: () => showCounterSettingsDialog(context, 'Soccer/ Universal')),
-                const SizedBox(width: 4),
-                IconButton(
-                  icon: const Icon(Icons.refresh, size: 18, color: AppColors.danger),
-                  onPressed: () => context.read<AppProvider>().resetScores(),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                ),
-              ],
+            titleTrailing: SettingsIconButton(
+              onTap: () => showCounterSettingsDialog(context, 'Soccer')),
+            trailing: IconButton(
+              icon: const Icon(Icons.refresh, size: 24),
+              onPressed: () => context.read<AppProvider>().resetScores(),
+              style: IconButton.styleFrom(backgroundColor: AppColors.danger.withOpacity(0.15), foregroundColor: AppColors.danger, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))), padding: const EdgeInsets.all(6),
+              constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
             ),
             child: Column(
               children: [

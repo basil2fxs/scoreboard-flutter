@@ -11,7 +11,7 @@ enum ConnectionStatus { disconnected, connecting, connected, bypass }
 
 const Map<String, String> kSportPrograms = {
   'AFL'              : '1',
-  'Soccer/ Universal': '2',
+  'Soccer': '2',
   'Cricket'          : '3',
   'Rugby'            : '4',
   'Hockey'           : '5',
@@ -75,8 +75,23 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> _init() async {
     _config = await _cfg.load();
-    _ramt.ultraWide    = _config.ultraWide;
-    _ramt.singleColour = _config.singleColour;
+
+    // ── 12-hour inactivity check ─────────────────────────────────────────
+    const _12h = 12 * 60 * 60 * 1000; // milliseconds
+    final now  = DateTime.now().millisecondsSinceEpoch;
+    if (_config.lastActiveMs > 0 && now - _config.lastActiveMs > _12h) {
+      _config = _config.resetScores();
+      // ignore: avoid_print
+      print('[Config] 12-hour inactivity detected — scores reset to zero');
+    }
+    // Stamp current time and persist immediately
+    _config = _config.copyWith(lastActiveMs: now);
+    await _cfg.save(_config);
+    // ─────────────────────────────────────────────────────────────────────
+
+    _ramt.ultraWide       = _config.ultraWide;
+    _ramt.singleColour    = _config.singleColour;
+    _udp.commandDelayMs   = _config.udpCommandDelayMs;
     _shotClockSecondsLive = _config.shotClockSeconds;
     SchedulerBinding.instance.addPostFrameCallback((_) {
       notifyListeners();
@@ -87,7 +102,9 @@ class AppProvider extends ChangeNotifier {
   // ─── Persistence ───────────────────────────────────────────────────────────
 
   void _update(AppConfig updated, {bool notify = true}) {
-    _config = updated;
+    // Stamp last-active time on every change so the 12-hour timer resets.
+    _config = updated.copyWith(
+        lastActiveMs: DateTime.now().millisecondsSinceEpoch);
     _cfg.save(_config);
     if (notify) notifyListeners();
   }
@@ -100,6 +117,36 @@ class AppProvider extends ChangeNotifier {
     _timerConfiguredFor = null; // Reset so timer re-initialises on next sport entry
     _update(_config.copyWith(laptopScoring: v));
   }
+
+  // ─── UDP timing ────────────────────────────────────────────────────────────
+
+  int get udpCommandDelayMs => _config.udpCommandDelayMs;
+  void setUdpCommandDelayMs(int ms) {
+    _udp.commandDelayMs = ms;
+    _update(_config.copyWith(udpCommandDelayMs: ms));
+  }
+
+  int get udpInitFlushDelayMs => _config.udpInitFlushDelayMs;
+  void setUdpInitFlushDelayMs(int ms) {
+    _update(_config.copyWith(udpInitFlushDelayMs: ms));
+  }
+
+  // ─── Remapping mode ────────────────────────────────────────────────────────
+
+  bool get remappingMode => _config.remappingMode;
+  void setRemappingMode(bool v) => _update(_config.copyWith(remappingMode: v));
+
+  // ─── RAMT slot remapping ───────────────────────────────────────────────────
+
+  void setRamtSlots({List<int>? homeSlots, List<int>? awaySlots, List<int>? timerSlots, int? shotClockSlot}) {
+    _update(_config.copyWith(
+      ramtHomeSlots    : homeSlots     ?? _config.ramtHomeSlots,
+      ramtAwaySlots    : awaySlots     ?? _config.ramtAwaySlots,
+      ramtTimerSlots   : timerSlots    ?? _config.ramtTimerSlots,
+      ramtShotClockSlot: shotClockSlot ?? _config.ramtShotClockSlot,
+    ));
+  }
+
 
   // ─── Counter channel mapping ───────────────────────────────────────────────
 
@@ -183,6 +230,9 @@ class AppProvider extends ChangeNotifier {
   String getLaptopAdDuration(int n) =>
       _config.laptopAdSettings['Ad${n}_dur'] ?? '10';
 
+  String getLaptopAdName(int n) =>
+      _config.laptopAdSettings['Ad${n}_name'] ?? 'Advertisement $n';
+
   // ─── Connection ────────────────────────────────────────────────────────────
 
   void _startAutoReconnect() {
@@ -245,14 +295,36 @@ class AppProvider extends ChangeNotifier {
     _update(_config.copyWith(currentSport: sport));
   }
 
-  /// In laptop mode always sends PRGC30. In normal mode sends the sport program.
+  /// In laptop mode sends the mapped page for the current sport (default 0).
+  /// In normal mode sends the sport's TF-F6 program number.
   void sendSportProgram() {
     if (_config.laptopScoring) {
-      _ramt.sendProgram('0');
+      final sport = _config.currentSport ?? '';
+      // Use mapped page if present; fall back to 0; null means don't send
+      if (_config.laptopSportPages.containsKey(sport)) {
+        final page = _config.laptopSportPages[sport];
+        if (page != null) _ramt.sendProgram(page.toString());
+      } else {
+        _ramt.sendProgram('0');
+      }
       return;
     }
     final p = kSportPrograms[_config.currentSport];
     if (p != null) _ramt.sendProgram(p);
+  }
+
+  // ─── Laptop page mapping setters ───────────────────────────────────────────
+
+  void setLaptopSportPage(String sport, int? page) {
+    final pages = Map<String, int?>.from(_config.laptopSportPages);
+    pages[sport] = page;
+    _update(_config.copyWith(laptopSportPages: pages));
+  }
+
+  void setLaptopAdPage(String key, int? page) {
+    final pages = Map<String, int?>.from(_config.laptopAdPages);
+    pages[key] = page;
+    _update(_config.copyWith(laptopAdPages: pages));
   }
 
   // ─── Timer channel setters ─────────────────────────────────────────────────
@@ -308,7 +380,7 @@ class AppProvider extends ChangeNotifier {
         ));
         _shotClockSecondsLive = scDefault;
         break;
-      case 'Soccer/ Universal':
+      case 'Soccer':
       case 'Rugby':
       default:
         _update(_config.copyWith(
@@ -359,7 +431,7 @@ class AppProvider extends ChangeNotifier {
           timerChannel      : 1,
         ));
         break;
-      case 'Soccer/ Universal':
+      case 'Soccer':
         _update(_config.copyWith(
           timerCountdown    : false,
           timerTargetSeconds: 0,
@@ -391,7 +463,7 @@ class AppProvider extends ChangeNotifier {
     _shotClockSecondsLive = seconds;
     _update(_config.copyWith(shotClockSeconds: seconds));
     if (_shotClockVisible && !_config.laptopScoring) {
-      _ramt.sendShotClock(_shotClockSecondsLive, _config.shotClockStyle);
+      _ramt.sendShotClock(_shotClockSecondsLive, _config.shotClockStyle, slot: _config.ramtShotClockSlot);
     }
   }
 
@@ -448,7 +520,7 @@ class AppProvider extends ChangeNotifier {
     final leading = _config.currentSport == 'AFL'
         ? _config.timerOffsetAfl
         : _config.timerOffsetDefault;
-    _ramt.sendTimer(_config.timerSeconds, _config.timerStyle, leading);
+    _ramt.sendTimer(_config.timerSeconds, _config.timerStyle, leading, slots: _config.ramtTimerSlots);
   }
 
   void updateTimerStyle(DisplayStyle style) {
@@ -479,7 +551,7 @@ class AppProvider extends ChangeNotifier {
       Timer(const Duration(seconds: 1),
           () => _ramt.sendHardwareTimerStart(_config.shotClockChannel));
     } else {
-      _ramt.sendShotClock(_shotClockSecondsLive, _config.shotClockStyle);
+      _ramt.sendShotClock(_shotClockSecondsLive, _config.shotClockStyle, slot: _config.ramtShotClockSlot);
     }
     _shotClockJob = Timer.periodic(const Duration(seconds: 1), (_) => _shotClockTick());
     notifyListeners();
@@ -512,7 +584,7 @@ class AppProvider extends ChangeNotifier {
       _shotClockVisible = true;
       _shotClockJob = Timer.periodic(const Duration(seconds: 1), (_) => _shotClockTick());
     } else {
-      _ramt.sendShotClock(_shotClockSecondsLive, _config.shotClockStyle);
+      _ramt.sendShotClock(_shotClockSecondsLive, _config.shotClockStyle, slot: _config.ramtShotClockSlot);
       if (_shotClockRunning) {
         _shotClockJob = Timer.periodic(const Duration(seconds: 1), (_) => _shotClockTick());
       }
@@ -523,7 +595,7 @@ class AppProvider extends ChangeNotifier {
   void _shotClockTick() {
     _shotClockSecondsLive = (_shotClockSecondsLive - 1).clamp(0, 999);
     if (!_config.laptopScoring) {
-      _ramt.sendShotClock(_shotClockSecondsLive, _config.shotClockStyle);
+      _ramt.sendShotClock(_shotClockSecondsLive, _config.shotClockStyle, slot: _config.ramtShotClockSlot);
     }
     if (_shotClockSecondsLive == 0) {
       _shotClockRunning = false;
@@ -536,7 +608,7 @@ class AppProvider extends ChangeNotifier {
   void updateShotClockStyle(DisplayStyle style) {
     _update(_config.copyWith(shotClockStyle: style));
     if (_shotClockVisible && !_config.laptopScoring) {
-      _ramt.sendShotClock(_shotClockSecondsLive, style);
+      _ramt.sendShotClock(_shotClockSecondsLive, style, slot: _config.ramtShotClockSlot);
     }
   }
 
@@ -545,14 +617,14 @@ class AppProvider extends ChangeNotifier {
   void setAflQuarter(int q) {
     _update(_config.copyWith(aflQuarter: q));
     if (!_config.laptopScoring) {
-      _ramt.sendAflQuarter(q, _config.aflQuarterStyle);
+      _ramt.sendAflQuarter(q, _config.aflQuarterStyle, slot: _config.ramtShotClockSlot);
     }
   }
 
   void updateAflQuarterStyle(DisplayStyle style) {
     _update(_config.copyWith(aflQuarterStyle: style));
     if (!_config.laptopScoring) {
-      _ramt.sendAflQuarter(_config.aflQuarter, style);
+      _ramt.sendAflQuarter(_config.aflQuarter, style, slot: _config.ramtShotClockSlot);
     }
   }
 
@@ -561,22 +633,22 @@ class AppProvider extends ChangeNotifier {
   void setHomeName(String name) {
     _update(_config.copyWith(homeName: name));
     if (!_config.laptopScoring) {
-      _ramt.sendTeamName(name, 1, _config.teamStyle);
+      _ramt.sendTeamName(name, _config.ramtHomeSlots, _config.teamStyle);
     }
   }
 
   void setAwayName(String name) {
     _update(_config.copyWith(awayName: name));
     if (!_config.laptopScoring) {
-      _ramt.sendTeamName(name, 3, _config.teamStyle);
+      _ramt.sendTeamName(name, _config.ramtAwaySlots, _config.teamStyle);
     }
   }
 
   void updateTeamStyle(DisplayStyle style) {
     _update(_config.copyWith(teamStyle: style));
     if (!_config.laptopScoring) {
-      _ramt.sendTeamName(_config.homeName, 1, style);
-      _ramt.sendTeamName(_config.awayName, 3, style);
+      _ramt.sendTeamName(_config.homeName, _config.ramtHomeSlots, style);
+      _ramt.sendTeamName(_config.awayName, _config.ramtAwaySlots, style);
     }
   }
 
@@ -585,22 +657,22 @@ class AppProvider extends ChangeNotifier {
   void setAflHomeName(String name) {
     _update(_config.copyWith(aflHomeName: name, homeName: name));
     if (!_config.laptopScoring) {
-      _ramt.sendTeamName(name, 1, _config.aflTeamStyle);
+      _ramt.sendTeamName(name, _config.ramtHomeSlots, _config.aflTeamStyle);
     }
   }
 
   void setAflAwayName(String name) {
     _update(_config.copyWith(aflAwayName: name, awayName: name));
     if (!_config.laptopScoring) {
-      _ramt.sendTeamName(name, 3, _config.aflTeamStyle);
+      _ramt.sendTeamName(name, _config.ramtAwaySlots, _config.aflTeamStyle);
     }
   }
 
   void updateAflTeamStyle(DisplayStyle style) {
     _update(_config.copyWith(aflTeamStyle: style));
     if (!_config.laptopScoring) {
-      _ramt.sendTeamName(_config.aflHomeName, 1, style);
-      _ramt.sendTeamName(_config.aflAwayName, 3, style);
+      _ramt.sendTeamName(_config.aflHomeName, _config.ramtHomeSlots, style);
+      _ramt.sendTeamName(_config.aflAwayName, _config.ramtAwaySlots, style);
     }
   }
 
@@ -609,29 +681,29 @@ class AppProvider extends ChangeNotifier {
   void setCricketHomeName(String name) {
     _update(_config.copyWith(cricketHomeName: name, homeName: name));
     if (!_config.laptopScoring) {
-      _ramt.sendTeamName(name, 1, _config.cricketTeamStyle);
+      _ramt.sendTeamName(name, _config.ramtHomeSlots, _config.cricketTeamStyle);
     }
   }
 
   void setCricketAwayName(String name) {
     _update(_config.copyWith(cricketAwayName: name, awayName: name));
     if (!_config.laptopScoring) {
-      _ramt.sendTeamName(name, 3, _config.cricketTeamStyle);
+      _ramt.sendTeamName(name, _config.ramtAwaySlots, _config.cricketTeamStyle);
     }
   }
 
   void updateCricketTeamStyle(DisplayStyle style) {
     _update(_config.copyWith(cricketTeamStyle: style));
     if (!_config.laptopScoring) {
-      _ramt.sendTeamName(_config.cricketHomeName, 1, style);
-      _ramt.sendTeamName(_config.cricketAwayName, 3, style);
+      _ramt.sendTeamName(_config.cricketHomeName, _config.ramtHomeSlots, style);
+      _ramt.sendTeamName(_config.cricketAwayName, _config.ramtAwaySlots, style);
     }
   }
 
   // ─── Simple scores (Soccer/Universal, Rugby, Hockey, Basketball) ───────────
 
   void adjustScore(String team, int delta) {
-    final sport = _config.currentSport ?? 'Soccer/ Universal';
+    final sport = _config.currentSport ?? 'Soccer';
     if (team == 'home') {
       final v = (_config.homeScore + delta).clamp(0, 999);
       _update(_config.copyWith(homeScore: v));
@@ -644,7 +716,7 @@ class AppProvider extends ChangeNotifier {
   }
 
   void setScore(String team, int value) {
-    final sport = _config.currentSport ?? 'Soccer/ Universal';
+    final sport = _config.currentSport ?? 'Soccer';
     final v = value.clamp(0, 999);
     if (team == 'home') {
       _update(_config.copyWith(homeScore: v));
@@ -656,7 +728,7 @@ class AppProvider extends ChangeNotifier {
   }
 
   void resetScores() {
-    final sport = _config.currentSport ?? 'Soccer/ Universal';
+    final sport = _config.currentSport ?? 'Soccer';
     _update(_config.copyWith(homeScore: 0, awayScore: 0));
     _ramt.setCounter(counterFor(sport, 'homeScore'), 0);
     _ramt.setCounter(counterFor(sport, 'awayScore'), 0);
@@ -850,6 +922,41 @@ class AppProvider extends ChangeNotifier {
     _ramt.setCounter(counterFor('Cricket', 'overs'), 0);
   }
 
+  // ─── Boot zero-init then resend ────────────────────────────────────────────
+
+  /// On sport screen entry: first zeroes all counters and shows HOME/AWAY team
+  /// names to clear any stale data from the previous sport, then after
+  /// [udpInitFlushDelayMs] sends the real stored values via [resendAll].
+  ///
+  /// In laptop mode this degrades to a simple resend since the hardware
+  /// controller manages counter display independently.
+  Future<void> sendZeroThenResend(String sport) async {
+    sendSportProgram();
+
+    if (_config.laptopScoring) {
+      Future.delayed(const Duration(milliseconds: 50), resendAll);
+      return;
+    }
+
+    // Determine team style for neutral name send
+    final teamStyle = sport == 'AFL'     ? _config.aflTeamStyle
+        : sport == 'Cricket' ? _config.cricketTeamStyle
+        : _config.teamStyle;
+
+    // Zero every counter channel (1-8 covers all sports)
+    for (int ch = 1; ch <= 8; ch++) {
+      _ramt.setCounter(ch, 0);
+    }
+
+    // Neutral team names so the display looks clean during flush
+    _ramt.sendTeamName('HOME', _config.ramtHomeSlots, teamStyle);
+    _ramt.sendTeamName('AWAY', _config.ramtAwaySlots, teamStyle);
+
+    // After flush delay, paint real stored values
+    await Future.delayed(Duration(milliseconds: _config.udpInitFlushDelayMs));
+    resendAll();
+  }
+
   // ─── Resend all display data ────────────────────────────────────────────────
 
   void resendAll() {
@@ -869,19 +976,19 @@ class AppProvider extends ChangeNotifier {
     // Normal mode: team names + counters + timer
     switch (sport) {
       case 'AFL':
-        _ramt.sendTeamName(c.aflHomeName, 1, c.aflTeamStyle);
-        _ramt.sendTeamName(c.aflAwayName, 3, c.aflTeamStyle);
+        _ramt.sendTeamName(c.aflHomeName, c.ramtHomeSlots, c.aflTeamStyle);
+        _ramt.sendTeamName(c.aflAwayName, c.ramtAwaySlots, c.aflTeamStyle);
         _ramt.setCounter(counterFor(sport, 'homeGoals'),  c.aflHomeGoals);
         _ramt.setCounter(counterFor(sport, 'awayGoals'),  c.aflAwayGoals);
         _ramt.setCounter(counterFor(sport, 'homePoints'), c.aflHomePoints);
         _ramt.setCounter(counterFor(sport, 'awayPoints'), c.aflAwayPoints);
         _ramt.setCounter(counterFor(sport, 'homeTotal'),  aflHomeTotal);
         _ramt.setCounter(counterFor(sport, 'awayTotal'),  aflAwayTotal);
-        _ramt.sendAflQuarter(c.aflQuarter, c.aflQuarterStyle);
+        _ramt.sendAflQuarter(c.aflQuarter, c.aflQuarterStyle, slot: c.ramtShotClockSlot);
         break;
       case 'Cricket':
-        _ramt.sendTeamName(c.cricketHomeName, 1, c.cricketTeamStyle);
-        _ramt.sendTeamName(c.cricketAwayName, 3, c.cricketTeamStyle);
+        _ramt.sendTeamName(c.cricketHomeName, c.ramtHomeSlots, c.cricketTeamStyle);
+        _ramt.sendTeamName(c.cricketAwayName, c.ramtAwaySlots, c.cricketTeamStyle);
         _ramt.setCounter(counterFor(sport, 'homeRuns'),    c.cricketHomeRuns);
         _ramt.setCounter(counterFor(sport, 'homeWickets'), c.cricketHomeWickets);
         _ramt.setCounter(counterFor(sport, 'awayRuns'),    c.cricketAwayRuns);
@@ -890,8 +997,8 @@ class AppProvider extends ChangeNotifier {
         _ramt.setCounter(counterFor(sport, 'overs'),       c.cricketOvers);
         break;
       case 'Basketball':
-        _ramt.sendTeamName(c.homeName, 1, c.teamStyle);
-        _ramt.sendTeamName(c.awayName, 3, c.teamStyle);
+        _ramt.sendTeamName(c.homeName, c.ramtHomeSlots, c.teamStyle);
+        _ramt.sendTeamName(c.awayName, c.ramtAwaySlots, c.teamStyle);
         _ramt.setCounter(counterFor(sport, 'homeScore'),    c.homeScore);
         _ramt.setCounter(counterFor(sport, 'awayScore'),    c.awayScore);
         _ramt.setCounter(counterFor(sport, 'homeTimeouts'), c.homeTimeouts);
@@ -900,8 +1007,8 @@ class AppProvider extends ChangeNotifier {
         _ramt.setCounter(counterFor(sport, 'awayFouls'),    c.awayFouls);
         break;
       default:
-        _ramt.sendTeamName(c.homeName, 1, c.teamStyle);
-        _ramt.sendTeamName(c.awayName, 3, c.teamStyle);
+        _ramt.sendTeamName(c.homeName, c.ramtHomeSlots, c.teamStyle);
+        _ramt.sendTeamName(c.awayName, c.ramtAwaySlots, c.teamStyle);
         _ramt.setCounter(counterFor(sport, 'homeScore'), c.homeScore);
         _ramt.setCounter(counterFor(sport, 'awayScore'), c.awayScore);
     }
@@ -1070,7 +1177,12 @@ class AppProvider extends ChangeNotifier {
     if (!_adLoopActive || _laptopAdPlaylist.isEmpty) return;
     if (_adPreviewActive) return; // Don't send during preview
     final (adNum, durationMs) = _laptopAdPlaylist[_laptopAdIdx];
-    _ramt.sendProgram(adNum.toString()); // e.g. PRGC31, PRGC32, ...
+    // Use mapped page if set; null = don't change page; fallback = adNum itself
+    final adKey  = 'Ad$adNum';
+    final mapped = _config.laptopAdPages.containsKey(adKey)
+        ? _config.laptopAdPages[adKey]
+        : adNum; // legacy default
+    if (mapped != null) _ramt.sendProgram(mapped.toString());
     if (_laptopAdPlaylist.length == 1) {
       _adLoopJob = null; // Single ad stays permanently
       return;
@@ -1136,6 +1248,7 @@ class AppProvider extends ChangeNotifier {
     stopAdLoop();
     _timerConfiguredFor = null;
     _udp.bypassMode = false;
+    _udp.commandDelayMs = 120;
     _connStatus = ConnectionStatus.disconnected;
     await _cfg.clear();
     _config = const AppConfig();

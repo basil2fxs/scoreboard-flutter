@@ -8,7 +8,7 @@ class SportSelectionScreen extends StatelessWidget {
 
   static const _sports = [
     ('AFL',              '🦘', Color(0xFFCC6600)),
-    ('Soccer/ Universal','⚽', Color(0xFF0066CC)),
+    ('Soccer','⚽', Color(0xFF0066CC)),
     ('Cricket',          '🏏', Color(0xFF006600)),
     ('Rugby',            '🏉', Color(0xFF660066)),
     ('Hockey',           '🏒', Color(0xFF006666)),

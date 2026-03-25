@@ -9,6 +9,7 @@ import '../widgets/afl_quarter_widget.dart';
 import '../widgets/section_card.dart';
 import '../widgets/ads_panel.dart';
 import '../widgets/settings_dialogs.dart';
+import 'remapping_screen.dart';
 
 class AflScreen extends StatefulWidget {
   const AflScreen({super.key});
@@ -23,8 +24,7 @@ class _AflScreenState extends State<AflScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final app = context.read<AppProvider>();
       app.initTimerForSport('AFL');
-      app.sendSportProgram();
-      Future.delayed(const Duration(milliseconds: 50), app.resendAll);
+      app.sendZeroThenResend('AFL');
     });
   }
 
@@ -42,11 +42,14 @@ class _AflScreenState extends State<AflScreen> {
           Navigator.pushReplacementNamed(context, '/home');
         }),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.tune, size: 20),
-            tooltip: 'Counter Channels',
-            onPressed: () => showCounterSettingsDialog(context, 'AFL'),
-          ),
+          if (app.remappingMode)
+            TextButton.icon(
+              onPressed: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const RemappingScreen(sport: 'AFL'))),
+              icon: const Icon(Icons.cable_outlined, size: 18, color: AppColors.accent),
+              label: const Text('Remapping',
+                  style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold)),
+            ),
         ],
       ),
       body: ListView(
@@ -111,10 +114,10 @@ class _AflTeamCard extends StatelessWidget {
     return SectionCard(
       title: teamLabel.toUpperCase(),
       trailing: IconButton(
-        icon: const Icon(Icons.refresh, size: 18, color: AppColors.danger),
+        icon: const Icon(Icons.refresh, size: 24),
         onPressed: onReset,
-        padding: EdgeInsets.zero,
-        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+        style: IconButton.styleFrom(backgroundColor: AppColors.danger.withOpacity(0.15), foregroundColor: AppColors.danger, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))), padding: const EdgeInsets.all(6),
+        constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
       ),
       child: Column(
         children: [

@@ -38,6 +38,40 @@ class _LaptopAdsPanel extends StatelessWidget {
 
     return SectionCard(
       title: 'ADVERTISEMENTS',
+      trailing: IconButton(
+        icon: const Icon(Icons.info_outline, size: 20, color: AppColors.textMuted),
+        onPressed: () => showDialog<void>(
+          context: context,
+          builder: (d) => AlertDialog(
+            backgroundColor: AppColors.surface,
+            title: const Row(
+              children: [
+                Icon(Icons.info_outline, color: AppColors.accent, size: 22),
+                SizedBox(width: 8),
+                Text('Laptop Ad Slots'),
+              ],
+            ),
+            content: const Text(
+              'Select how many advertisements or sponsor programs you have added in PowerLED.\n\n'
+              'Each program is another advertisement slot — Ad 1 corresponds to the first program you added, Ad 2 to the second, and so on.\n\n'
+              'Set the duration (in seconds) for each ad and tick the box to include it in the loop.',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
+            ),
+            actions: [
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(d),
+                  child: const Text('Got it',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
+        ),
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -48,7 +82,7 @@ class _LaptopAdsPanel extends StatelessWidget {
               Expanded(child: Text('Advertisement',
                   style: TextStyle(fontSize: 11, color: AppColors.textMuted,
                       fontWeight: FontWeight.bold))),
-              SizedBox(width: 64,
+              SizedBox(width: 52,
                 child: Text('Secs', textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 11, color: AppColors.textMuted,
                         fontWeight: FontWeight.bold))),
@@ -63,6 +97,7 @@ class _LaptopAdsPanel extends StatelessWidget {
               adNumber: n,
               selected: app.getLaptopAdSelected(n),
               duration: app.getLaptopAdDuration(n),
+              currentName: app.getLaptopAdName(n),
               onToggle: (v) => context.read<AppProvider>()
                   .setLaptopAdSetting('Ad${n}_sel', v ? 'true' : 'false'),
               onDuration: (v) => context.read<AppProvider>()
@@ -78,37 +113,43 @@ class _LaptopAdsPanel extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: loop
-                      ? () {
-                          context.read<AppProvider>().stopAdLoop();
-                          onReturnToScores();
-                        }
-                      : null,
-                  icon: const Icon(Icons.stop_circle_outlined, size: 18),
-                  label: const Text('Return to Scores',
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: loop ? AppColors.warning : AppColors.surfaceHigh,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                child: SizedBox(
+                  height: 64,
+                  child: ElevatedButton.icon(
+                    onPressed: loop
+                        ? () {
+                            context.read<AppProvider>().stopAdLoop();
+                            onReturnToScores();
+                          }
+                        : null,
+                    icon: const Icon(Icons.stop_circle_outlined, size: 18),
+                    label: const Text('Return to\nScores',
+                        textAlign: TextAlign.center, maxLines: 2),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: loop ? AppColors.warning : AppColors.surfaceHigh,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: (loop || !anySelected)
-                      ? null
-                      : () => context.read<AppProvider>().startAdLoop(),
-                  icon: const Icon(Icons.play_circle_outline, size: 18),
-                  label: const Text('Play Ads'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: (loop || !anySelected)
-                        ? AppColors.surfaceHigh
-                        : AppColors.success,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                child: SizedBox(
+                  height: 64,
+                  child: ElevatedButton.icon(
+                    onPressed: (loop || !anySelected)
+                        ? null
+                        : () => context.read<AppProvider>().startAdLoop(),
+                    icon: const Icon(Icons.play_circle_outline, size: 18),
+                    label: const Text('Play Ads'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: (loop || !anySelected)
+                          ? AppColors.surfaceHigh
+                          : AppColors.success,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
                   ),
                 ),
               ),
@@ -124,10 +165,12 @@ class _LaptopAdRow extends StatefulWidget {
   final int adNumber;
   final bool selected;
   final String duration;
+  final String currentName;
   final ValueChanged<bool> onToggle;
   final ValueChanged<String> onDuration;
   const _LaptopAdRow({
     required this.adNumber, required this.selected, required this.duration,
+    required this.currentName,
     required this.onToggle, required this.onDuration,
   });
   @override
@@ -168,7 +211,7 @@ class _LaptopAdRowState extends State<_LaptopAdRow> {
           ),
           Expanded(
             child: Text(
-              'Advertisement ${widget.adNumber}',
+              widget.currentName,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -194,20 +237,65 @@ class _LaptopAdRowState extends State<_LaptopAdRow> {
               onChanged: widget.onDuration,
             ),
           ),
-          // Fixed: no edit/delete buttons in laptop mode
           const SizedBox(width: 4),
-          Container(
-            width: 64,
-            alignment: Alignment.center,
-            child: Text(
-              '→ PRGC3${widget.adNumber}',
-              style: const TextStyle(
-                fontSize: 9, color: AppColors.textMuted, fontFamily: 'monospace'),
+          GestureDetector(
+            onTap: () => _showRenameDialog(context),
+            child: Container(
+              width: 32, height: 32,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceHigh,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Icon(Icons.edit_outlined, size: 16, color: AppColors.accent),
             ),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _showRenameDialog(BuildContext context) async {
+    final ctrl = TextEditingController(text: widget.currentName);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (d) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text('Rename Ad ${widget.adNumber}'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          style: const TextStyle(color: Colors.white, fontSize: 16),
+          decoration: const InputDecoration(
+            labelText: 'Ad Name',
+            labelStyle: TextStyle(color: AppColors.textSecondary),
+            filled: true,
+            fillColor: AppColors.surfaceHigh,
+            border: OutlineInputBorder(
+                borderSide: BorderSide(color: AppColors.surfaceBorder)),
+            enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: AppColors.surfaceBorder)),
+            focusedBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: AppColors.accent, width: 2)),
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(d, false),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(d, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    final name = ctrl.text.trim();
+    ctrl.dispose();
+    if (ok == true && context.mounted && name.isNotEmpty) {
+      context.read<AppProvider>()
+          .setLaptopAdSetting('Ad${widget.adNumber}_name', name);
+    }
   }
 }
 
@@ -275,37 +363,43 @@ class _NormalAdsPanel extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: loop
-                      ? () {
-                          context.read<AppProvider>().stopAdLoop();
-                          onReturnToScores();
-                        }
-                      : null,
-                  icon: const Icon(Icons.stop_circle_outlined, size: 18),
-                  label: const Text('Return to Scores',
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: loop ? AppColors.warning : AppColors.surfaceHigh,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                child: SizedBox(
+                  height: 64,
+                  child: ElevatedButton.icon(
+                    onPressed: loop
+                        ? () {
+                            context.read<AppProvider>().stopAdLoop();
+                            onReturnToScores();
+                          }
+                        : null,
+                    icon: const Icon(Icons.stop_circle_outlined, size: 18),
+                    label: const Text('Return to\nScores',
+                        textAlign: TextAlign.center, maxLines: 2),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: loop ? AppColors.warning : AppColors.surfaceHigh,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: (loop || !anySelected)
-                      ? null
-                      : () => context.read<AppProvider>().startAdLoop(),
-                  icon: const Icon(Icons.play_circle_outline, size: 18),
-                  label: const Text('Play Ads'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: (loop || !anySelected)
-                        ? AppColors.surfaceHigh
-                        : AppColors.success,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                child: SizedBox(
+                  height: 64,
+                  child: ElevatedButton.icon(
+                    onPressed: (loop || !anySelected)
+                        ? null
+                        : () => context.read<AppProvider>().startAdLoop(),
+                    icon: const Icon(Icons.play_circle_outline, size: 18),
+                    label: const Text('Play Ads'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: (loop || !anySelected)
+                          ? AppColors.surfaceHigh
+                          : AppColors.success,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
                   ),
                 ),
               ),

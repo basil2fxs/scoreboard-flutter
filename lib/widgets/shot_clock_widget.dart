@@ -19,40 +19,12 @@ class ShotClockWidget extends StatelessWidget {
 
     return SectionCard(
       title: 'SHOT CLOCK',
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _SetTimeBtn(onTap: () => _showSetTimeDialog(context, app)),
-          const SizedBox(width: 6),
-          // Hide style settings in laptop mode
-          if (!isLaptop)
-            SettingsIconButton(onTap: () => showShotClockSettingsDialog(context)),
-        ],
-      ),
+      titleTrailing: isLaptop
+          ? null
+          : SettingsIconButton(onTap: () => showShotClockSettingsDialog(context)),
+      trailing: _SetTimeBtn(onTap: () => _showSetTimeDialog(context, app)),
       child: Column(
         children: [
-          if (isLaptop)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.accent.withOpacity(0.18),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: AppColors.accent.withOpacity(0.45)),
-                ),
-                child: Text(
-                  'HW TIMER ${app.config.shotClockChannel}',
-                  style: const TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.8,
-                    color: AppColors.accent,
-                  ),
-                ),
-              ),
-            ),
-
           // ── Big seconds display ───────────────────────────────────────────
           Container(
             padding: const EdgeInsets.symmetric(vertical: 10),
@@ -312,7 +284,8 @@ class _SetTimeBtn extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        height: 38,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
           color: AppColors.surfaceHigh,
           borderRadius: BorderRadius.circular(8),

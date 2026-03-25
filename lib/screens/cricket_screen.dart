@@ -7,6 +7,7 @@ import '../widgets/team_names_card.dart';
 import '../widgets/section_card.dart';
 import '../widgets/ads_panel.dart';
 import '../widgets/settings_dialogs.dart';
+import 'remapping_screen.dart';
 
 class CricketScreen extends StatefulWidget {
   const CricketScreen({super.key});
@@ -21,8 +22,7 @@ class _CricketScreenState extends State<CricketScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final app = context.read<AppProvider>();
       app.initTimerForSport('Cricket');
-      app.sendSportProgram();
-      Future.delayed(const Duration(milliseconds: 50), app.resendAll);
+      app.sendZeroThenResend('Cricket');
     });
   }
 
@@ -40,11 +40,14 @@ class _CricketScreenState extends State<CricketScreen> {
           Navigator.pushReplacementNamed(context, '/home');
         }),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.tune, size: 20),
-            tooltip: 'Counter Channels',
-            onPressed: () => showCounterSettingsDialog(context, 'Cricket'),
-          ),
+          if (app.remappingMode)
+            TextButton.icon(
+              onPressed: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const RemappingScreen(sport: 'Cricket'))),
+              icon: const Icon(Icons.cable_outlined, size: 18, color: AppColors.accent),
+              label: const Text('Remapping',
+                  style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold)),
+            ),
         ],
       ),
       body: ListView(
@@ -74,10 +77,10 @@ class _CricketScreenState extends State<CricketScreen> {
           SectionCard(
             title: 'MATCH INFO',
             trailing: IconButton(
-              icon: const Icon(Icons.refresh, size: 18, color: AppColors.danger),
+              icon: const Icon(Icons.refresh, size: 24),
               onPressed: () => app.resetCricketMatchInfo(),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+              style: IconButton.styleFrom(backgroundColor: AppColors.danger.withOpacity(0.15), foregroundColor: AppColors.danger, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))), padding: const EdgeInsets.all(6),
+              constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
             ),
             child: Column(children: [
               _CricketStatRow(label: 'Extras', value: c.cricketExtras,
@@ -119,9 +122,9 @@ class _CricketTeamCard extends StatelessWidget {
     return SectionCard(
       title: label.toUpperCase(),
       trailing: IconButton(
-        icon: const Icon(Icons.refresh, size: 18, color: AppColors.danger),
-        onPressed: onReset, padding: EdgeInsets.zero,
-        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+        icon: const Icon(Icons.refresh, size: 24),
+        onPressed: onReset, style: IconButton.styleFrom(backgroundColor: AppColors.danger.withOpacity(0.15), foregroundColor: AppColors.danger, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))), padding: const EdgeInsets.all(6),
+        constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
       ),
       child: Column(children: [
         _CricketStatRow(label: 'Runs',    value: runs,    onDelta: onRuns,    onManual: onManualRuns,    labelColor: color),
@@ -150,21 +153,21 @@ class _CricketStatRowState extends State<_CricketStatRow> {
   @override
   Widget build(BuildContext context) {
     return Row(children: [
-      SizedBox(width: 72, child: Text(widget.label, style: TextStyle(color: widget.labelColor, fontSize: 13, fontWeight: FontWeight.bold))),
+      SizedBox(width: 80, child: Text(widget.label, style: TextStyle(color: widget.labelColor, fontSize: 16, fontWeight: FontWeight.bold))),
       _SBtn('−', AppColors.danger, () => widget.onDelta(-1)),
-      const SizedBox(width: 6),
+      const SizedBox(width: 8),
       Expanded(child: TextField(
         controller: _c, textAlign: TextAlign.center,
         keyboardType: TextInputType.number,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+        style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white),
         decoration: const InputDecoration(filled: true, fillColor: AppColors.background,
           border: OutlineInputBorder(borderSide: BorderSide(color: AppColors.surfaceBorder)),
           enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: AppColors.surfaceBorder)),
-          contentPadding: EdgeInsets.symmetric(vertical: 8)),
+          contentPadding: EdgeInsets.symmetric(vertical: 10)),
         onSubmitted: (v) => widget.onManual(int.tryParse(v) ?? widget.value),
       )),
-      const SizedBox(width: 6),
+      const SizedBox(width: 8),
       _SBtn('+', AppColors.success, () => widget.onDelta(1)),
     ]);
   }
@@ -174,5 +177,5 @@ class _SBtn extends StatelessWidget {
   const _SBtn(this.l, this.c, this.t);
   @override Widget build(BuildContext ctx) => Material(color: c, borderRadius: BorderRadius.circular(8),
     child: InkWell(borderRadius: BorderRadius.circular(8), onTap: t,
-      child: SizedBox(width: 38, height: 38, child: Center(child: Text(l, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white))))));
+      child: SizedBox(width: 46, height: 46, child: Center(child: Text(l, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white))))));
 }

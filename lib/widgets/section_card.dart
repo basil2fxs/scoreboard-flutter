@@ -5,6 +5,9 @@ import '../theme/app_theme.dart';
 class SectionCard extends StatelessWidget {
   final String title;
   final Widget child;
+  /// Widget placed immediately after the title text (e.g. settings gear).
+  final Widget? titleTrailing;
+  /// Widget placed on the far right of the header (e.g. reset / set-time).
   final Widget? trailing;
   final EdgeInsetsGeometry padding;
 
@@ -12,6 +15,7 @@ class SectionCard extends StatelessWidget {
     super.key,
     required this.title,
     required this.child,
+    this.titleTrailing,
     this.trailing,
     this.padding = const EdgeInsets.fromLTRB(14, 6, 14, 14),
   });
@@ -41,6 +45,10 @@ class SectionCard extends StatelessWidget {
                     letterSpacing: 0.8,
                   ),
                 ),
+                if (titleTrailing != null) ...[
+                  const SizedBox(width: 6),
+                  titleTrailing!,
+                ],
                 const Spacer(),
                 if (trailing != null) trailing!,
               ],
@@ -64,7 +72,8 @@ class SettingsIconButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(6),
+        height: 38,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(
           color: AppColors.surfaceHigh,
           borderRadius: BorderRadius.circular(8),

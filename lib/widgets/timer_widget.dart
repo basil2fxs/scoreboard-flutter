@@ -19,73 +19,16 @@ class TimerWidget extends StatelessWidget {
 
     return SectionCard(
       title: 'TIMER',
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _HeaderBtn(
-            label: 'Set Time',
-            icon: Icons.timer_outlined,
-            onTap: () => _showSetTimeDialog(context, app),
-          ),
-          const SizedBox(width: 6),
-          // Hide style settings in laptop mode
-          if (!isLaptop)
-            SettingsIconButton(onTap: () => showTimerSettingsDialog(context)),
-        ],
+      titleTrailing: isLaptop
+          ? null
+          : SettingsIconButton(onTap: () => showTimerSettingsDialog(context)),
+      trailing: _HeaderBtn(
+        label: 'Set Time',
+        icon: Icons.timer_outlined,
+        onTap: () => _showSetTimeDialog(context, app),
       ),
       child: Column(
         children: [
-          // ── Mode badge ────────────────────────────────────────────────────
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                decoration: BoxDecoration(
-                  color: isCountdown
-                      ? AppColors.warning.withOpacity(0.18)
-                      : AppColors.success.withOpacity(0.18),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: isCountdown
-                        ? AppColors.warning.withOpacity(0.45)
-                        : AppColors.success.withOpacity(0.45),
-                  ),
-                ),
-                child: Text(
-                  isCountdown ? '⏷  COUNT DOWN' : '⏶  COUNT UP',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.8,
-                    color: isCountdown ? AppColors.warning : AppColors.success,
-                  ),
-                ),
-              ),
-              if (isLaptop) ...[
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppColors.accent.withOpacity(0.18),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: AppColors.accent.withOpacity(0.45)),
-                  ),
-                  child: Text(
-                    'HW TIMER ${app.config.timerChannel}',
-                    style: const TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.8,
-                      color: AppColors.accent,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 8),
-
           // ── Big MM:SS display ─────────────────────────────────────────────
           Container(
             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -224,11 +167,30 @@ class _SetTimerSheetState extends State<_SetTimerSheet> {
     ),
   );
 
+  /// Returns 3 most common quick-set values (in seconds) for the current sport.
+  List<int> _quickSets() {
+    switch (widget.app.config.currentSport ?? '') {
+      case 'AFL':             return [20 * 60, 25 * 60, 30 * 60];
+      case 'Soccer': return [45 * 60, 40 * 60, 20 * 60];
+      case 'Basketball':      return [10 * 60, 12 * 60, 15 * 60];
+      case 'Rugby':           return [40 * 60, 45 * 60, 35 * 60];
+      case 'Hockey':          return [15 * 60, 20 * 60, 25 * 60];
+      case 'Cricket':         return [20 * 60, 30 * 60, 40 * 60];
+      default:                return [20 * 60, 25 * 60, 45 * 60];
+    }
+  }
+
+  String _fmtQuick(int s) {
+    final m = s ~/ 60;
+    final sec = s % 60;
+    return '${m.toString().padLeft(2, '0')}:${sec.toString().padLeft(2, '0')}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final isLaptop    = widget.app.laptopScoring;
-    return Padding(
+    return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(20, 20, 20, bottomInset + 24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -333,17 +295,13 @@ class _SetTimerSheetState extends State<_SetTimerSheet> {
             const SizedBox(height: 16),
             const _SectionLabel('Quick Set'),
             const SizedBox(height: 8),
-            Wrap(
-              spacing: 8, runSpacing: 8,
-              children: [
-                _QuickChip(label: '10:00', onTap: () => _applyQuick(10 * 60)),
-                _QuickChip(label: '12:00', onTap: () => _applyQuick(12 * 60)),
-                _QuickChip(label: '15:00', onTap: () => _applyQuick(15 * 60)),
-                _QuickChip(label: '20:00', onTap: () => _applyQuick(20 * 60)),
-                _QuickChip(label: '25:00', onTap: () => _applyQuick(25 * 60)),
-                _QuickChip(label: '40:00', onTap: () => _applyQuick(40 * 60)),
-                _QuickChip(label: '45:00', onTap: () => _applyQuick(45 * 60)),
-              ],
+            Row(
+              children: _quickSets().map((s) => Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: _QuickChip(label: _fmtQuick(s), onTap: () => _applyQuick(s)),
+                ),
+              )).toList(),
             ),
           ] else ...[
             Container(
@@ -456,7 +414,8 @@ class _HeaderBtn extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        height: 38,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
           color: AppColors.surfaceHigh,
           borderRadius: BorderRadius.circular(8),
@@ -511,15 +470,16 @@ class _QuickChip extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
           color: AppColors.surfaceHigh,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(color: AppColors.surfaceBorder),
         ),
+        alignment: Alignment.center,
         child: Text(label,
             style: const TextStyle(
-                fontSize: 13, color: Colors.white, fontWeight: FontWeight.bold)),
+                fontSize: 14, color: Colors.white, fontWeight: FontWeight.bold)),
       ),
     );
   }

@@ -112,6 +112,25 @@ class AppConfig {
   // ── Laptop mode ───────────────────────────────────────────────────────────
   final bool laptopScoring;
 
+  // ── UDP timing ────────────────────────────────────────────────────────────
+  /// Milliseconds between each queued UDP command. Default 120.
+  final int udpCommandDelayMs;
+  /// Milliseconds to wait before re-sending real data after zeroing on boot.
+  final int udpInitFlushDelayMs;
+
+  // ── Remapping mode ────────────────────────────────────────────────────────
+  final bool remappingMode;
+
+  // ── RAMT slot remapping ───────────────────────────────────────────────────
+  /// The 2 RAMT slots used by the home team name (any 2 slots from 1-8).
+  final List<int> ramtHomeSlots;
+  /// The 2 RAMT slots used by the away team name (any 2 slots from 1-8).
+  final List<int> ramtAwaySlots;
+  /// The 3 RAMT slots used by the timer (any 3 slots from 1-8).
+  final List<int> ramtTimerSlots;
+  /// RAMT slot for shot clock / AFL quarter (single slot).
+  final int ramtShotClockSlot;
+
   // ── Counter channel remapping (sport/field → CNT number) ─────────────────
   // e.g. 'Basketball/homeScore' → 5
   final Map<String, int> counterChannels;
@@ -123,6 +142,17 @@ class AppConfig {
   // ── Laptop mode fixed ad selections (Ad1–Ad5) ─────────────────────────────
   // 'Ad1' → true/false (selected), 'Ad1_dur' → '10' (seconds)
   final Map<String, String> laptopAdSettings;
+
+  // ── Laptop page mapping ────────────────────────────────────────────────────
+  /// Maps sport name → scoreboard page number (null = don't send PRGC).
+  final Map<String, int?> laptopSportPages;
+  /// Maps 'Ad1'–'Ad5' → scoreboard page number (null = don't send PRGC).
+  final Map<String, int?> laptopAdPages;
+
+  // ── Inactivity tracking ───────────────────────────────────────────────────
+  /// Milliseconds since epoch of last app activity. Used for 12-hour
+  /// inactivity detection — scores reset to 0 if exceeded.
+  final int lastActiveMs;
 
   const AppConfig({
     this.displayWidth,
@@ -169,22 +199,73 @@ class AppConfig {
     this.singleColour         = false,
     this.ultraWide            = false,
     this.laptopScoring        = false,
+    this.udpCommandDelayMs    = 120,
+    this.udpInitFlushDelayMs  = 500,
+    this.remappingMode        = false,
+    this.ramtHomeSlots        = const [1, 2],
+    this.ramtAwaySlots        = const [3, 4],
+    this.ramtTimerSlots       = const [5, 6, 7],
+    this.ramtShotClockSlot    = 8,
     this.counterChannels      = const {},
     this.advertisements       = const [],
     this.adSelections         = const {},
     this.laptopAdSettings     = const {'Ad1_sel': 'true', 'Ad1_dur': '4',
                                        'Ad2_dur': '4', 'Ad3_dur': '4',
                                        'Ad4_dur': '4', 'Ad5_dur': '4'},
+    this.laptopSportPages     = const {
+      'AFL': 0, 'Soccer': 0, 'Cricket': 0,
+      'Rugby': 0, 'Hockey': 0, 'Basketball': 0,
+    },
+    this.laptopAdPages        = const {
+      'Ad1': 1, 'Ad2': 2, 'Ad3': 3, 'Ad4': 4, 'Ad5': 5,
+    },
+    this.lastActiveMs         = 0,
   });
 
   bool get isDisplayConfigured =>
       displayWidth != null && displayHeight != null;
+
+  /// Returns a copy with all live game scores / counters zeroed.
+  /// Preserves names, styles, settings, ads, and all other config.
+  AppConfig resetScores() => copyWith(
+    homeScore         : 0,
+    awayScore         : 0,
+    timerSeconds      : 0,
+    shotClockSeconds  : 30,
+    aflHomeGoals      : 0,
+    aflHomePoints     : 0,
+    aflAwayGoals      : 0,
+    aflAwayPoints     : 0,
+    aflQuarter        : 1,
+    cricketHomeRuns   : 0,
+    cricketHomeWickets: 0,
+    cricketAwayRuns   : 0,
+    cricketAwayWickets: 0,
+    cricketExtras     : 0,
+    cricketOvers      : 0,
+    cricketBalls      : 0,
+    homeTimeouts      : 0,
+    awayTimeouts      : 0,
+    homeFouls         : 0,
+    awayFouls         : 0,
+  );
 
   // ─── Serialisation ────────────────────────────────────────────────────────
   factory AppConfig.fromJson(Map<String, dynamic> j) {
     DisplayStyle _style(String key, DisplayStyle def) {
       final raw = j[key];
       if (raw is Map<String, dynamic>) return DisplayStyle.fromJson(raw);
+      return def;
+    }
+
+    List<int> _slots(String key, List<int> def, {String? legacyStartKey, int legacySpan = 1}) {
+      final raw = j[key];
+      if (raw is List && raw.isNotEmpty) return raw.map((e) => e as int).toList();
+      // Backwards compatibility: read old ramt_*_start integer and expand to list
+      if (legacyStartKey != null) {
+        final start = j[legacyStartKey] as int?;
+        if (start != null) return List.generate(legacySpan, (i) => start + i);
+      }
       return def;
     }
 
@@ -230,9 +311,16 @@ class AppConfig {
       awayTimeouts      : j['away_timeouts']         as int? ?? 0,
       homeFouls         : j['home_fouls']            as int? ?? 0,
       awayFouls         : j['away_fouls']            as int? ?? 0,
-      singleColour      : j['single_colour']         as bool? ?? false,
-      ultraWide         : j['ultra_wide']            as bool? ?? false,
-      laptopScoring     : j['laptop_scoring']        as bool? ?? false,
+      singleColour      : j['single_colour']            as bool? ?? false,
+      ultraWide         : j['ultra_wide']             as bool? ?? false,
+      laptopScoring     : j['laptop_scoring']         as bool? ?? false,
+      udpCommandDelayMs : j['udp_command_delay_ms']   as int?  ?? 120,
+      udpInitFlushDelayMs:j['udp_init_flush_delay_ms']as int?  ?? 500,
+      remappingMode     : j['remapping_mode']         as bool? ?? false,
+      ramtHomeSlots     : _slots('ramt_home_slots',  [1, 2], legacyStartKey: 'ramt_home_start',  legacySpan: 2),
+      ramtAwaySlots     : _slots('ramt_away_slots',  [3, 4], legacyStartKey: 'ramt_away_start',  legacySpan: 2),
+      ramtTimerSlots    : _slots('ramt_timer_slots', [5, 6, 7], legacyStartKey: 'ramt_timer_start', legacySpan: 3),
+      ramtShotClockSlot : j['ramt_shot_clock_slot']  as int?  ?? 8,
       counterChannels   : (j['counter_channels'] as Map<String, dynamic>? ?? {})
           .map((k, v) => MapEntry(k, v as int)),
       advertisements    : (j['advertisements'] as List<dynamic>? ?? [])
@@ -242,6 +330,22 @@ class AppConfig {
           .map((k, v) => MapEntry(k, AdSelection.fromJson(v as Map<String, dynamic>))),
       laptopAdSettings  : (j['laptop_ad_settings'] as Map<String, dynamic>? ?? {})
           .map((k, v) => MapEntry(k, v as String)),
+      laptopSportPages  : (() {
+        final raw = j['laptop_sport_pages'] as Map<String, dynamic>?;
+        if (raw == null) return const <String, int?>{
+          'AFL': 0, 'Soccer': 0, 'Cricket': 0,
+          'Rugby': 0, 'Hockey': 0, 'Basketball': 0,
+        };
+        return raw.map((k, v) => MapEntry(k, v as int?));
+      })(),
+      laptopAdPages     : (() {
+        final raw = j['laptop_ad_pages'] as Map<String, dynamic>?;
+        if (raw == null) return const <String, int?>{
+          'Ad1': 1, 'Ad2': 2, 'Ad3': 3, 'Ad4': 4, 'Ad5': 5,
+        };
+        return raw.map((k, v) => MapEntry(k, v as int?));
+      })(),
+      lastActiveMs      : j['last_active_ms']          as int?  ?? 0,
     );
   }
 
@@ -287,13 +391,23 @@ class AppConfig {
     'away_timeouts'        : awayTimeouts,
     'home_fouls'           : homeFouls,
     'away_fouls'           : awayFouls,
-    'single_colour'        : singleColour,
-    'ultra_wide'           : ultraWide,
-    'laptop_scoring'       : laptopScoring,
+    'single_colour'           : singleColour,
+    'ultra_wide'              : ultraWide,
+    'laptop_scoring'          : laptopScoring,
+    'udp_command_delay_ms'    : udpCommandDelayMs,
+    'udp_init_flush_delay_ms' : udpInitFlushDelayMs,
+    'remapping_mode'          : remappingMode,
+    'ramt_home_slots'      : ramtHomeSlots,
+    'ramt_away_slots'      : ramtAwaySlots,
+    'ramt_timer_slots'     : ramtTimerSlots,
+    'ramt_shot_clock_slot' : ramtShotClockSlot,
     'counter_channels'     : counterChannels,
     'advertisements'       : advertisements.map((a) => a.toJson()).toList(),
     'ad_selections'        : adSelections.map((k, v) => MapEntry(k, v.toJson())),
     'laptop_ad_settings'   : laptopAdSettings,
+    'laptop_sport_pages'   : laptopSportPages,
+    'laptop_ad_pages'      : laptopAdPages,
+    'last_active_ms'       : lastActiveMs,
   };
 
   AppConfig copyWith({
@@ -316,10 +430,17 @@ class AppConfig {
     int? homeTimeouts, int? awayTimeouts, int? homeFouls, int? awayFouls,
     bool? singleColour, bool? ultraWide,
     bool? laptopScoring,
+    int? udpCommandDelayMs, int? udpInitFlushDelayMs,
+    bool? remappingMode,
+    List<int>? ramtHomeSlots, List<int>? ramtAwaySlots,
+    List<int>? ramtTimerSlots, int? ramtShotClockSlot,
     Map<String, int>? counterChannels,
     List<Advertisement>? advertisements,
     Map<String, AdSelection>? adSelections,
     Map<String, String>? laptopAdSettings,
+    Map<String, int?>? laptopSportPages,
+    Map<String, int?>? laptopAdPages,
+    int? lastActiveMs,
     // Allow explicitly setting nullable displayWidth/Height to null via sentinel
     bool clearDisplay = false,
   }) {
@@ -365,13 +486,23 @@ class AppConfig {
       awayTimeouts      : awayTimeouts      ?? this.awayTimeouts,
       homeFouls         : homeFouls         ?? this.homeFouls,
       awayFouls         : awayFouls         ?? this.awayFouls,
-      singleColour      : singleColour      ?? this.singleColour,
-      ultraWide         : ultraWide         ?? this.ultraWide,
-      laptopScoring     : laptopScoring     ?? this.laptopScoring,
+      singleColour      : singleColour        ?? this.singleColour,
+      ultraWide         : ultraWide           ?? this.ultraWide,
+      laptopScoring     : laptopScoring       ?? this.laptopScoring,
+      udpCommandDelayMs : udpCommandDelayMs   ?? this.udpCommandDelayMs,
+      udpInitFlushDelayMs:udpInitFlushDelayMs ?? this.udpInitFlushDelayMs,
+      remappingMode     : remappingMode       ?? this.remappingMode,
+      ramtHomeSlots     : ramtHomeSlots     ?? this.ramtHomeSlots,
+      ramtAwaySlots     : ramtAwaySlots     ?? this.ramtAwaySlots,
+      ramtTimerSlots    : ramtTimerSlots    ?? this.ramtTimerSlots,
+      ramtShotClockSlot : ramtShotClockSlot ?? this.ramtShotClockSlot,
       counterChannels   : counterChannels   ?? this.counterChannels,
       advertisements    : advertisements    ?? this.advertisements,
       adSelections      : adSelections      ?? this.adSelections,
       laptopAdSettings  : laptopAdSettings  ?? this.laptopAdSettings,
+      laptopSportPages  : laptopSportPages  ?? this.laptopSportPages,
+      laptopAdPages     : laptopAdPages     ?? this.laptopAdPages,
+      lastActiveMs      : lastActiveMs      ?? this.lastActiveMs,
     );
   }
 }

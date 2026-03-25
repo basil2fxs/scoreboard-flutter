@@ -58,7 +58,7 @@ Future<void> showDisplayStyleDialog(
               Text(title, style: Theme.of(ctx).textTheme.headlineSmall),
               const SizedBox(height: 4),
               const Text('Changes apply live on display',
-                  style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                  style: TextStyle(fontSize: 14, color: AppColors.textMuted)),
               const SizedBox(height: 20),
 
               // ── Colour (hidden in single-colour mode) ─────────────────────
@@ -113,6 +113,7 @@ Future<void> showDisplayStyleDialog(
                               Text(ls.label,
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
+                                  fontSize: 15,
                                   fontWeight: FontWeight.bold,
                                   color: selected ? Colors.white : AppColors.textSecondary,
                                 ),
@@ -147,6 +148,7 @@ Future<void> showDisplayStyleDialog(
                           child: Text(a.label,
                             textAlign: TextAlign.center,
                             style: TextStyle(
+                              fontSize: 15,
                               fontWeight: FontWeight.bold,
                               color: selected ? Colors.white : AppColors.textSecondary,
                             ),
@@ -208,7 +210,7 @@ Future<void> showDisplayStyleDialog(
 }
 
 Widget _sectionLabel(String text) => Text(text,
-  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold,
+  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold,
       color: AppColors.textMuted, letterSpacing: 0.8));
 
 // ─── Specific dialogs ─────────────────────────────────────────────────────────
@@ -279,7 +281,7 @@ void showTimerSettingsDialog(BuildContext context) {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
               const SizedBox(height: 4),
               const Text('Changes apply live on display',
-                  style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                  style: TextStyle(fontSize: 14, color: AppColors.textMuted)),
               const SizedBox(height: 20),
 
               // ── Colour (hidden in single-colour mode) ──────────────────
@@ -363,6 +365,7 @@ void showTimerSettingsDialog(BuildContext context) {
                           child: Text(a.label,
                             textAlign: TextAlign.center,
                             style: TextStyle(
+                              fontSize: 15,
                               fontWeight: FontWeight.bold,
                               color: selected ? Colors.white : AppColors.textSecondary,
                             ),
@@ -377,7 +380,7 @@ void showTimerSettingsDialog(BuildContext context) {
 
               // ── Leading Spaces ──────────────────────────────────────────
               Row(children: [
-                _sectionLabel('Leading Spaces'),
+                _sectionLabel('Shift to Right'),
                 const Spacer(),
                 _Stepper(
                   value: offset,
@@ -507,7 +510,7 @@ class _CounterSettingsSheetState extends State<_CounterSettingsSheet> {
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
             const SizedBox(height: 4),
             const Text('Remap which CNTS number each field uses.',
-              style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+              style: TextStyle(fontSize: 14, color: AppColors.textMuted)),
             const SizedBox(height: 20),
 
             // Column headers
@@ -516,7 +519,7 @@ class _CounterSettingsSheetState extends State<_CounterSettingsSheet> {
               ...List.generate(6, (i) => Expanded(
                 child: Text('${i + 1}',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textMuted)),
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textMuted)),
               )),
             ]),
             const SizedBox(height: 6),
@@ -533,7 +536,7 @@ class _CounterSettingsSheetState extends State<_CounterSettingsSheet> {
                     SizedBox(
                       width: 130,
                       child: Text(label,
-                        style: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w500)),
+                        style: const TextStyle(fontSize: 15, color: Colors.white, fontWeight: FontWeight.w500)),
                     ),
                     ...List.generate(6, (i) {
                       final n = i + 1;
@@ -554,7 +557,7 @@ class _CounterSettingsSheetState extends State<_CounterSettingsSheet> {
                             child: Text('$n',
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                fontSize: 13,
+                                fontSize: 15,
                                 fontWeight: FontWeight.bold,
                                 color: selected ? Colors.white : AppColors.textSecondary,
                               ),

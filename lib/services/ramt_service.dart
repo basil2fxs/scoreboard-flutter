@@ -52,8 +52,8 @@ class RamtService {
   void sendHardwareTimerPause(int n) => udp.send('*#1TIMP$n,0000');
   void sendHardwareTimerReset(int n) => udp.send('*#1TIMR$n,0000');
 
-  // ─── Team name (2 RAMT slots) ─────────────────────────────────────────────
-  void sendTeamName(String name, int startSlot, DisplayStyle style) {
+  // ─── Team name (2 RAMT slots — any 2 slots) ──────────────────────────────
+  void sendTeamName(String name, List<int> slots, DisplayStyle style) {
     const hAlign = '3'; // always Left
     final vAlign = style.vAlign;
     final cs = effectiveChunkSize(style.size);
@@ -62,14 +62,15 @@ class RamtService {
     for (int i = 0; i < src.length; i += cs) {
       chunks.add(src.substring(i, (i + cs).clamp(0, src.length)));
     }
-    while (chunks.length < 2) chunks.add(' ');
-    for (int i = 0; i < 2; i++) {
-      sendRamt(startSlot + i, style.color, style.size, hAlign, vAlign, chunks[i]);
+    while (chunks.length < slots.length) chunks.add(' ');
+    for (int i = 0; i < slots.length; i++) {
+      sendRamt(slots[i], style.color, style.size, hAlign, vAlign, chunks[i]);
     }
   }
 
-  // ─── Timer (3 RAMT slots RAMT5–7) ────────────────────────────────────────
-  void sendTimer(int totalSeconds, DisplayStyle style, int leadingSpaces) {
+  // ─── Timer (3 RAMT slots — any 3 slots) ──────────────────────────────────
+  void sendTimer(int totalSeconds, DisplayStyle style, int leadingSpaces,
+      {List<int> slots = const [5, 6, 7]}) {
     final mins = totalSeconds ~/ 60;
     final secs = totalSeconds  % 60;
     final raw  = '${'$mins'.padLeft(2,'0')}:${'$secs'.padLeft(2,'0')}';
@@ -80,27 +81,27 @@ class RamtService {
     for (int i = 0; i < src.length; i += cs) {
       chunks.add(src.substring(i, (i + cs).clamp(0, src.length)));
     }
-    while (chunks.length < 3) chunks.add(' ');
-    for (int i = 0; i < 3; i++) {
-      sendRamt(5 + i, style.color, style.size, style.hAlign, style.vAlign, chunks[i]);
+    while (chunks.length < slots.length) chunks.add(' ');
+    for (int i = 0; i < slots.length; i++) {
+      sendRamt(slots[i], style.color, style.size, style.hAlign, style.vAlign, chunks[i]);
     }
   }
 
-  // ─── Shot clock (RAMT8) ───────────────────────────────────────────────────
-  void sendShotClock(int seconds, DisplayStyle style) {
-    sendRamt(8, style.color, style.size, style.hAlign, style.vAlign, '$seconds');
+  // ─── Shot clock ───────────────────────────────────────────────────────────
+  void sendShotClock(int seconds, DisplayStyle style, {int slot = 8}) {
+    sendRamt(slot, style.color, style.size, style.hAlign, style.vAlign, '$seconds');
   }
 
-  void clearRamt8(DisplayStyle style) {
-    sendRamt(8, style.color, style.size, style.hAlign, style.vAlign, ' ');
+  void clearRamt8(DisplayStyle style, {int slot = 8}) {
+    sendRamt(slot, style.color, style.size, style.hAlign, style.vAlign, ' ');
   }
 
-  // ─── AFL Quarter (RAMT8) ──────────────────────────────────────────────────
-  void sendAflQuarter(int quarter, DisplayStyle style) {
+  // ─── AFL Quarter ──────────────────────────────────────────────────────────
+  void sendAflQuarter(int quarter, DisplayStyle style, {int slot = 8}) {
     if (quarter == 0) {
-      sendRamt(8, style.color, style.size, style.hAlign, style.vAlign, ' ');
+      sendRamt(slot, style.color, style.size, style.hAlign, style.vAlign, ' ');
     } else {
-      sendRamt(8, style.color, style.size, style.hAlign, style.vAlign, 'Q$quarter');
+      sendRamt(slot, style.color, style.size, style.hAlign, style.vAlign, 'Q$quarter');
     }
   }
 

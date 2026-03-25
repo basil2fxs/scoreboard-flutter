@@ -94,7 +94,7 @@ class _TeamNamesCardState extends State<TeamNamesCard> {
 
     return SectionCard(
       title: 'TEAM NAMES',
-      trailing: SettingsIconButton(onTap: () => showTeamNameSettingsDialog(context)),
+      titleTrailing: SettingsIconButton(onTap: () => showTeamNameSettingsDialog(context)),
       child: Column(
         children: [
           _nameRow('Home', _homeCtr, _homeFocus, AppColors.homeTeam, (v) {

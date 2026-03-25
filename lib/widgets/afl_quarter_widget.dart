@@ -15,7 +15,7 @@ class AflQuarterWidget extends StatelessWidget {
 
     return SectionCard(
       title: 'QUARTER',
-      trailing: SettingsIconButton(onTap: () => showAflQuarterSettingsDialog(context)),
+      titleTrailing: SettingsIconButton(onTap: () => showAflQuarterSettingsDialog(context)),
       child: Column(
         children: [
           // Big display

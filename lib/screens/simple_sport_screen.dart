@@ -9,6 +9,7 @@ import '../widgets/score_card.dart';
 import '../widgets/section_card.dart';
 import '../widgets/ads_panel.dart';
 import '../widgets/settings_dialogs.dart';
+import 'remapping_screen.dart';
 
 /// Used for Rugby, Hockey, and Basketball.
 class SimpleSportScreen extends StatefulWidget {
@@ -23,9 +24,9 @@ class _SimpleSportScreenState extends State<SimpleSportScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final app = context.read<AppProvider>();
-      app.initTimerForSport(app.config.currentSport ?? '');
-      app.sendSportProgram();
-      Future.delayed(const Duration(milliseconds: 50), app.resendAll);
+      final sport = app.config.currentSport ?? '';
+      app.initTimerForSport(sport);
+      app.sendZeroThenResend(sport);
     });
   }
 
@@ -45,6 +46,16 @@ class _SimpleSportScreenState extends State<SimpleSportScreen> {
           app.backToHome();
           Navigator.pushReplacementNamed(context, '/home');
         }),
+        actions: [
+          if (app.remappingMode)
+            TextButton.icon(
+              onPressed: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => RemappingScreen(sport: sport))),
+              icon: const Icon(Icons.cable_outlined, size: 18, color: AppColors.accent),
+              label: const Text('Remapping',
+                  style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold)),
+            ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.only(bottom: 24),
@@ -55,19 +66,18 @@ class _SimpleSportScreenState extends State<SimpleSportScreen> {
           // ── Scores ───────────────────────────────────────────────────────
           SectionCard(
             title: 'SCORES',
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SettingsIconButton(
-                  onTap: () => showCounterSettingsDialog(context, sport)),
-                const SizedBox(width: 4),
-                IconButton(
-                  icon: const Icon(Icons.refresh, size: 18, color: AppColors.danger),
-                  onPressed: () => app.resetScores(),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                ),
-              ],
+            titleTrailing: SettingsIconButton(
+              onTap: () => showCounterSettingsDialog(context, sport)),
+            trailing: IconButton(
+              icon: const Icon(Icons.refresh, size: 24),
+              onPressed: () => app.resetScores(),
+              style: IconButton.styleFrom(
+                backgroundColor: AppColors.danger.withOpacity(0.15),
+                foregroundColor: AppColors.danger,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              padding: const EdgeInsets.all(6),
+              constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
             ),
             child: Column(
               children: [
@@ -122,10 +132,15 @@ class _SimpleSportScreenState extends State<SimpleSportScreen> {
             SectionCard(
               title: 'TIMEOUTS',
               trailing: IconButton(
-                icon: const Icon(Icons.refresh, size: 18, color: AppColors.danger),
+                icon: const Icon(Icons.refresh, size: 24),
                 onPressed: () => app.resetTimeouts(),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                style: IconButton.styleFrom(
+                  backgroundColor: AppColors.danger.withOpacity(0.15),
+                  foregroundColor: AppColors.danger,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                padding: const EdgeInsets.all(6),
+                constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
               ),
               child: Row(children: [
                 Expanded(child: _ExtraRow(
@@ -140,10 +155,15 @@ class _SimpleSportScreenState extends State<SimpleSportScreen> {
             SectionCard(
               title: 'FOULS',
               trailing: IconButton(
-                icon: const Icon(Icons.refresh, size: 18, color: AppColors.danger),
+                icon: const Icon(Icons.refresh, size: 24),
                 onPressed: () => app.resetFouls(),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                style: IconButton.styleFrom(
+                  backgroundColor: AppColors.danger.withOpacity(0.15),
+                  foregroundColor: AppColors.danger,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                padding: const EdgeInsets.all(6),
+                constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
               ),
               child: Row(children: [
                 Expanded(child: _ExtraRow(
@@ -368,15 +388,15 @@ class _ExtraRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(label, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 6),
+        Text(label, style: TextStyle(fontSize: 14, color: color, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             _MiniBtn('−', AppColors.danger, onDec),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: Text('$value', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: Text('$value', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
             ),
             _MiniBtn('+', AppColors.success, onInc),
           ],
@@ -391,9 +411,9 @@ class _MiniBtn extends StatelessWidget {
   const _MiniBtn(this.l, this.c, this.t);
   @override
   Widget build(BuildContext ctx) => Material(
-    color: c, borderRadius: BorderRadius.circular(6),
-    child: InkWell(borderRadius: BorderRadius.circular(6), onTap: t,
-      child: SizedBox(width: 32, height: 32,
-        child: Center(child: Text(l, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white))))),
+    color: c, borderRadius: BorderRadius.circular(8),
+    child: InkWell(borderRadius: BorderRadius.circular(8), onTap: t,
+      child: SizedBox(width: 46, height: 46,
+        child: Center(child: Text(l, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white))))),
   );
 }

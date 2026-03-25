@@ -60,7 +60,7 @@ class _RowData {
     this.color  = '7',
     this.size   = '3',
     this.hAlign = '1',
-    this.vAlign = '2',
+    this.vAlign = '1', // Mid by default
   });
 }
 
@@ -554,7 +554,7 @@ class _AdEditorScreenState extends State<AdEditorScreen>
           padding: const EdgeInsets.only(bottom: 36),
           children: [
 
-            // ── Ad Name (TOP) ──────────────────────────────────────────────
+            // ── Ad Name ────────────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
               child: TextField(
@@ -686,6 +686,24 @@ class _AdEditorScreenState extends State<AdEditorScreen>
                           ),
                         ),
 
+                        // Max chars indicator — bottom-right corner of canvas
+                        Positioned(
+                          right: 6,
+                          bottom: 4,
+                          child: Text(
+                            '$textLen/$limit',
+                            style: TextStyle(
+                              fontSize  : 11,
+                              fontWeight: FontWeight.bold,
+                              color: remaining < 0
+                                  ? AppColors.dangerBright
+                                  : remaining <= 2
+                                      ? AppColors.warning
+                                      : Colors.white.withOpacity(0.45),
+                            ),
+                          ),
+                        ),
+
                         // Invisible text fields — one per row for direct typing
                         ...List.generate(4, (i) => Positioned(
                           top: 0, left: 0,
@@ -746,25 +764,6 @@ class _AdEditorScreenState extends State<AdEditorScreen>
                                 color   : AppColors.textSecondary),
                           ),
                         ),
-                        const Spacer(),
-                        Text(
-                          '$textLen/$limit',
-                          style: TextStyle(
-                            fontSize  : 13,
-                            fontWeight: FontWeight.bold,
-                            color: remaining < 0
-                                ? AppColors.dangerBright
-                                : remaining <= 2
-                                    ? AppColors.warning
-                                    : AppColors.timerGreen,
-                          ),
-                        ),
-                        if (remaining < 0) ...[
-                          const SizedBox(width: 3),
-                          const Icon(Icons.warning_amber_rounded,
-                              size : 13,
-                              color: AppColors.dangerBright),
-                        ],
                       ],
                     ),
                   ),
@@ -774,114 +773,98 @@ class _AdEditorScreenState extends State<AdEditorScreen>
 
             const SizedBox(height: 10),
 
-            // ── Row Tabs + Border ──────────────────────────────────────────
+            // ── Row Tabs ───────────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  // Use Wrap so chips never overflow on narrow screens
-                  Wrap(
-                    spacing: 4,
-                    runSpacing: 4,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      // ROWS label — prominent so it's obvious the + adds rows
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Text('ROWS',
+                  // ROWS label
+                  const Text('ROWS',
+                      style: TextStyle(
+                          fontSize    : 18,
+                          fontWeight  : FontWeight.w900,
+                          color       : Colors.white,
+                          letterSpacing: 1.0)),
+                  // Row chips
+                  ...List.generate(_numRows, (i) {
+                    final sel = i == _selectedRow;
+                    return GestureDetector(
+                      onTap: () => _selectRow(i),
+                      child: Container(
+                        width : 38, height: 38,
+                        decoration: BoxDecoration(
+                          color: sel ? AppColors.accent : AppColors.surfaceHigh,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                              color: sel ? AppColors.accent : AppColors.surfaceBorder),
+                        ),
+                        child: Center(
+                          child: Text('${i + 1}',
                               style: TextStyle(
-                                  fontSize    : 13,
-                                  fontWeight  : FontWeight.w800,
-                                  color       : Colors.white,
-                                  letterSpacing: 1.0)),
-                          Text('tap + to add',
-                              style: TextStyle(
-                                  fontSize: 8,
-                                  color   : AppColors.textMuted)),
-                        ],
+                                  fontSize  : 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: sel ? Colors.white : AppColors.textSecondary)),
+                        ),
                       ),
-                      // Row chips
-                      ...List.generate(_numRows, (i) {
-                        final sel = i == _selectedRow;
-                        return GestureDetector(
-                          onTap: () => _selectRow(i),
-                          child: Container(
-                            width : 34, height: 34,
-                            decoration: BoxDecoration(
-                              color: sel
-                                  ? AppColors.accent
-                                  : AppColors.surfaceHigh,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                  color: sel
-                                      ? AppColors.accent
-                                      : AppColors.surfaceBorder),
-                            ),
-                            child: Center(
-                              child: Text('${i + 1}',
-                                  style: TextStyle(
-                                      fontSize  : 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: sel
-                                          ? Colors.white
-                                          : AppColors.textSecondary)),
-                            ),
-                          ),
-                        );
-                      }),
-                      // + add row
-                      if (_numRows < 4)
-                        GestureDetector(
-                          onTap: _addRow,
-                          child: Container(
-                            width : 34, height: 34,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF003300),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                  color: AppColors.success.withOpacity(0.5)),
-                            ),
-                            child: const Center(
-                                child: Icon(Icons.add,
-                                    size : 18,
-                                    color: AppColors.success)),
-                          ),
-                        ),
-                      // − remove row
-                      if (_numRows > 1)
-                        GestureDetector(
-                          onTap: _removeLastRow,
-                          child: Container(
-                            width : 34, height: 34,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF330000),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                  color: AppColors.danger.withOpacity(0.5)),
-                            ),
-                            child: const Center(
-                                child: Icon(Icons.remove,
-                                    size : 18,
-                                    color: AppColors.danger)),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  // BORDER toggle — on its own row to prevent overflow on narrow screens
+                    );
+                  }),
+                  // + ROW and − ROW — always side-by-side, dimmed when locked
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      const _Label('BORDER'),
-                      const SizedBox(width: 4),
-                      Switch(
-                        value   : _border,
-                        onChanged: _toggleBorder,
-                        activeColor: AppColors.accent,
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      Opacity(
+                        opacity: _numRows >= 4 ? 0.35 : 1.0,
+                        child: IgnorePointer(
+                          ignoring: _numRows >= 4,
+                          child: GestureDetector(
+                            onTap: _addRow,
+                            child: Container(
+                              height: 38,
+                              padding: const EdgeInsets.symmetric(horizontal: 14),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF003300),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: AppColors.success.withOpacity(0.5)),
+                              ),
+                              child: const Center(
+                                child: Text('+ ROW',
+                                    style: TextStyle(
+                                        fontSize  : 13,
+                                        fontWeight: FontWeight.bold,
+                                        color     : AppColors.success)),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Opacity(
+                        opacity: _numRows <= 1 ? 0.35 : 1.0,
+                        child: IgnorePointer(
+                          ignoring: _numRows <= 1,
+                          child: GestureDetector(
+                            onTap: _removeLastRow,
+                            child: Container(
+                              height: 38,
+                              padding: const EdgeInsets.symmetric(horizontal: 14),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF330000),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: AppColors.danger.withOpacity(0.5)),
+                              ),
+                              child: const Center(
+                                child: Text('− ROW',
+                                    style: TextStyle(
+                                        fontSize  : 13,
+                                        fontWeight: FontWeight.bold,
+                                        color     : AppColors.danger)),
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -903,43 +886,6 @@ class _AdEditorScreenState extends State<AdEditorScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
-                  // ── Colour ───────────────────────────────────────────────
-                  if (!_singleColour) ...[
-                  const _Label('COLOUR'),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8, runSpacing: 8,
-                    children: kLedColors.map((lc) {
-                      final sel = rowData.color == lc.code;
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() => _rows[_selectedRow].color = lc.code);
-                          _markEdited();
-                          _refocusSelectedRow();
-                        },
-                        child: Container(
-                          width : 40, height: 40,
-                          decoration: BoxDecoration(
-                            color: lc.color,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                                color: sel
-                                    ? Colors.white
-                                    : Colors.transparent,
-                                width: 2.5),
-                          ),
-                          child: sel
-                              ? const Icon(Icons.check,
-                                  color: Colors.black, size: 16)
-                              : null,
-                        ),
-                      );
-                    }).toList(),
-                  ),
-
-                  const SizedBox(height: 14),
-                  ],
 
                   // ── Size ─────────────────────────────────────────────────
                   Row(
@@ -1014,6 +960,55 @@ class _AdEditorScreenState extends State<AdEditorScreen>
                     ],
                   ),
 
+                  const SizedBox(height: 14),
+
+                  // ── Colour ───────────────────────────────────────────────
+                  if (!_singleColour) ...[
+                    const _Label('COLOUR'),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8, runSpacing: 8,
+                      children: kLedColors.map((lc) {
+                        final sel = rowData.color == lc.code;
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() => _rows[_selectedRow].color = lc.code);
+                            _markEdited();
+                            _refocusSelectedRow();
+                          },
+                          child: Container(
+                            width : 40, height: 40,
+                            decoration: BoxDecoration(
+                              color: lc.color,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                  color: sel ? Colors.white : Colors.transparent,
+                                  width: 2.5),
+                            ),
+                            child: sel
+                                ? const Icon(Icons.check,
+                                    color: Colors.black, size: 16)
+                                : null,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+
+                  // ── Border ───────────────────────────────────────────────
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const _Label('BORDER'),
+                      Switch(
+                        value    : _border,
+                        onChanged: _toggleBorder,
+                        activeColor: AppColors.accent,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 10),
 
                   // ── H-Align + V-Align on one compact row ─────────────────
