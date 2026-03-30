@@ -547,6 +547,7 @@ class AppProvider extends ChangeNotifier {
     final leading = _config.currentSport == 'AFL'
         ? _config.timerOffsetAfl
         : _config.timerOffsetDefault;
+    _udp.clearSlotsFromQueue(_config.ramtTimerSlots);
     _ramt.sendTimer(_config.timerSeconds, _config.timerStyle, leading, slots: _config.ramtTimerSlots);
   }
 
@@ -1271,6 +1272,10 @@ class AppProvider extends ChangeNotifier {
     _ramt.sendProgram('0');
     if (!_config.laptopScoring) {
       Timer(const Duration(milliseconds: 120), _ramt.blankDisplay);
+    }
+    if (_connStatus == ConnectionStatus.connected) {
+      _connStatus = ConnectionStatus.connecting;
+      notifyListeners();
     }
   }
 
