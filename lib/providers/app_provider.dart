@@ -644,14 +644,21 @@ class AppProvider extends ChangeNotifier {
   void setAflQuarter(int q) {
     _update(_config.copyWith(aflQuarter: q));
     if (!_config.laptopScoring) {
-      _ramt.sendAflQuarter(q, _config.aflQuarterStyle, slot: _config.ramtShotClockSlot);
+      _ramt.sendAflQuarter(q, _config.aflQuarterStyle, slot: _config.ramtShotClockSlot, numberOnly: _config.aflQuarterNumberOnly);
     }
   }
 
   void updateAflQuarterStyle(DisplayStyle style) {
     _update(_config.copyWith(aflQuarterStyle: style));
     if (!_config.laptopScoring) {
-      _ramt.sendAflQuarter(_config.aflQuarter, style, slot: _config.ramtShotClockSlot);
+      _ramt.sendAflQuarter(_config.aflQuarter, style, slot: _config.ramtShotClockSlot, numberOnly: _config.aflQuarterNumberOnly);
+    }
+  }
+
+  void setAflQuarterNumberOnly(bool v) {
+    _update(_config.copyWith(aflQuarterNumberOnly: v));
+    if (!_config.laptopScoring) {
+      _ramt.sendAflQuarter(_config.aflQuarter, _config.aflQuarterStyle, slot: _config.ramtShotClockSlot, numberOnly: v);
     }
   }
 
@@ -1011,7 +1018,7 @@ class AppProvider extends ChangeNotifier {
         _ramt.setCounter(counterFor(sport, 'awayPoints'), c.aflAwayPoints);
         _ramt.setCounter(counterFor(sport, 'homeTotal'),  aflHomeTotal);
         _ramt.setCounter(counterFor(sport, 'awayTotal'),  aflAwayTotal);
-        _ramt.sendAflQuarter(c.aflQuarter, c.aflQuarterStyle, slot: c.ramtShotClockSlot);
+        _ramt.sendAflQuarter(c.aflQuarter, c.aflQuarterStyle, slot: c.ramtShotClockSlot, numberOnly: c.aflQuarterNumberOnly);
         break;
       case 'Cricket':
         _ramt.sendTeamName(c.cricketHomeName, c.ramtHomeSlots, c.cricketTeamStyle);

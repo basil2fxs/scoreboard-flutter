@@ -41,7 +41,7 @@ class DisplayStyle {
   // Timers always default to Top alignment; shot clock uses Large size by default.
   static const timerDefault   = DisplayStyle(color: '7', size: '2', hAlign: '3', vAlign: '3');
   static const shotDefault    = DisplayStyle(color: '7', size: '1', hAlign: '3', vAlign: '3');
-  static const quarterDefault = DisplayStyle(color: '7', size: '2', hAlign: '3', vAlign: '2');
+  static const quarterDefault = DisplayStyle(color: '7', size: '2', hAlign: '3', vAlign: '3');
 }
 
 /// Full serialisable app config — written to device storage on every change.
@@ -87,6 +87,8 @@ class AppConfig {
   final int aflAwayPoints;
   final int aflQuarter;
   final DisplayStyle aflQuarterStyle;
+  /// When true, sends just the number (1-4) to the display instead of Q1-Q4.
+  final bool aflQuarterNumberOnly;
 
   // ── Cricket ───────────────────────────────────────────────────────────────
   final String cricketHomeName;
@@ -183,6 +185,7 @@ class AppConfig {
     this.aflAwayPoints        = 0,
     this.aflQuarter           = 1,
     this.aflQuarterStyle      = DisplayStyle.quarterDefault,
+    this.aflQuarterNumberOnly = false,
     this.cricketHomeName      = 'HOME',
     this.cricketAwayName      = 'AWAY',
     this.cricketHomeRuns      = 0,
@@ -296,8 +299,9 @@ class AppConfig {
       aflHomePoints     : j['afl_home_points']       as int? ?? 0,
       aflAwayGoals      : j['afl_away_goals']        as int? ?? 0,
       aflAwayPoints     : j['afl_away_points']       as int? ?? 0,
-      aflQuarter        : j['afl_quarter']           as int? ?? 1,
-      aflQuarterStyle   : _style('afl_quarter_style',  DisplayStyle.quarterDefault),
+      aflQuarter            : j['afl_quarter']              as int?  ?? 1,
+      aflQuarterStyle       : _style('afl_quarter_style',   DisplayStyle.quarterDefault),
+      aflQuarterNumberOnly  : j['afl_quarter_number_only']  as bool? ?? false,
       cricketHomeName   : j['cricket_home_name']     as String? ?? 'HOME',
       cricketAwayName   : j['cricket_away_name']     as String? ?? 'AWAY',
       cricketHomeRuns   : j['cricket_home_runs']     as int? ?? 0,
@@ -376,8 +380,9 @@ class AppConfig {
     'afl_home_points'      : aflHomePoints,
     'afl_away_goals'       : aflAwayGoals,
     'afl_away_points'      : aflAwayPoints,
-    'afl_quarter'          : aflQuarter,
-    'afl_quarter_style'    : aflQuarterStyle.toJson(),
+    'afl_quarter'              : aflQuarter,
+    'afl_quarter_style'        : aflQuarterStyle.toJson(),
+    'afl_quarter_number_only'  : aflQuarterNumberOnly,
     'cricket_home_name'    : cricketHomeName,
     'cricket_away_name'    : cricketAwayName,
     'cricket_home_runs'    : cricketHomeRuns,
@@ -422,7 +427,7 @@ class AppConfig {
     int? shotClockChannel,
     String? aflHomeName, String? aflAwayName,
     int? aflHomeGoals, int? aflHomePoints, int? aflAwayGoals, int? aflAwayPoints,
-    int? aflQuarter, DisplayStyle? aflQuarterStyle,
+    int? aflQuarter, DisplayStyle? aflQuarterStyle, bool? aflQuarterNumberOnly,
     String? cricketHomeName, String? cricketAwayName,
     int? cricketHomeRuns, int? cricketHomeWickets,
     int? cricketAwayRuns, int? cricketAwayWickets,
@@ -471,8 +476,9 @@ class AppConfig {
       aflHomePoints     : aflHomePoints     ?? this.aflHomePoints,
       aflAwayGoals      : aflAwayGoals      ?? this.aflAwayGoals,
       aflAwayPoints     : aflAwayPoints     ?? this.aflAwayPoints,
-      aflQuarter        : aflQuarter        ?? this.aflQuarter,
-      aflQuarterStyle   : aflQuarterStyle   ?? this.aflQuarterStyle,
+      aflQuarter            : aflQuarter            ?? this.aflQuarter,
+      aflQuarterStyle       : aflQuarterStyle       ?? this.aflQuarterStyle,
+      aflQuarterNumberOnly  : aflQuarterNumberOnly  ?? this.aflQuarterNumberOnly,
       cricketHomeName   : cricketHomeName   ?? this.cricketHomeName,
       cricketAwayName   : cricketAwayName   ?? this.cricketAwayName,
       cricketHomeRuns   : cricketHomeRuns   ?? this.cricketHomeRuns,
