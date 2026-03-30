@@ -40,7 +40,7 @@ class DisplayStyle {
   static const teamDefault    = DisplayStyle(color: '1', size: '2', hAlign: '3', vAlign: '3');
   // Timers always default to Top alignment; shot clock uses Large size by default.
   static const timerDefault   = DisplayStyle(color: '7', size: '2', hAlign: '3', vAlign: '3');
-  static const shotDefault    = DisplayStyle(color: '7', size: '1', hAlign: '3', vAlign: '3');
+  static const shotDefault    = DisplayStyle(color: '7', size: '3', hAlign: '3', vAlign: '3');
   static const quarterDefault = DisplayStyle(color: '7', size: '2', hAlign: '3', vAlign: '3');
 }
 
