@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iCatcher Scoreboard Control — Support</title>
+  <style>
+    :root {
+      --bg:       #0f1117;
+      --surface:  #1a1d27;
+      --card:     #22263a;
+      --border:   #2e3248;
+      --accent:   #4f8ef7;
+      --success:  #2ecc71;
+      --warning:  #f39c12;
+      --danger:   #e74c3c;
+      --text:     #e8eaf0;
+      --muted:    #8a90aa;
+      --radius:   12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.6;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #1a1d27 0%, #0f1117 60%);
+      border-bottom: 1px solid var(--border);
+      padding: 60px 24px 48px;
+      text-align: center;
+    }
+    .hero-icon {
+      width: 80px; height: 80px;
+      background: var(--accent);
+      border-radius: 20px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 40px; margin-bottom: 20px;
+      box-shadow: 0 8px 32px rgba(79,142,247,0.3);
+    }
+    .hero h1 { font-size: 2.2rem; font-weight: 800; letter-spacing: -0.5px; }
+    .hero h1 span { color: var(--accent); }
+    .hero p { color: var(--muted); font-size: 1.05rem; margin-top: 8px; max-width: 520px; margin-left: auto; margin-right: auto; }
+    .hero-badges { margin-top: 20px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .badge {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 6px 14px; font-size: 0.8rem; color: var(--muted);
+    }
+    .badge.green  { border-color: var(--success); color: var(--success); }
+    .badge.blue   { border-color: var(--accent);  color: var(--accent); }
+
+    /* ── Search ── */
+    .search-wrap {
+      max-width: 640px; margin: 32px auto 0;
+      padding: 0 24px;
+    }
+    .search-wrap input {
+      width: 100%; padding: 14px 18px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text);
+      font-size: 1rem; outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-wrap input:focus { border-color: var(--accent); }
+    .search-wrap input::placeholder { color: var(--muted); }
+
+    /* ── Layout ── */
+    .container { max-width: 860px; margin: 0 auto; padding: 40px 24px 80px; }
+
+    /* ── Section ── */
+    .section { margin-bottom: 48px; }
+    .section-header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 16px;
+    }
+    .section-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .icon-blue   { background: rgba(79,142,247,0.15); }
+    .icon-green  { background: rgba(46,204,113,0.15); }
+    .icon-orange { background: rgba(243,156,18,0.15); }
+    .icon-red    { background: rgba(231,76,60,0.15); }
+    .icon-purple { background: rgba(155,89,182,0.15); }
+
+    .section-header h2 { font-size: 1.1rem; font-weight: 700; }
+    .section-label {
+      font-size: 0.7rem; font-weight: 700; letter-spacing: 1.2px;
+      color: var(--muted); text-transform: uppercase; margin-bottom: 4px;
+    }
+
+    /* ── Accordion ── */
+    .accordion { display: flex; flex-direction: column; gap: 8px; }
+
+    .acc-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .acc-item.open { border-color: var(--accent); }
+    .acc-item.hidden { display: none; }
+
+    .acc-trigger {
+      width: 100%; background: none; border: none; cursor: pointer;
+      padding: 16px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      text-align: left; color: var(--text);
+    }
+    .acc-trigger:hover { background: rgba(255,255,255,0.03); }
+
+    .acc-title { font-size: 0.95rem; font-weight: 600; }
+    .acc-chevron {
+      font-size: 0.8rem; color: var(--muted);
+      transition: transform 0.25s; flex-shrink: 0;
+    }
+    .acc-item.open .acc-chevron { transform: rotate(180deg); }
+
+    .acc-body {
+      display: none;
+      padding: 0 20px 20px;
+      border-top: 1px solid var(--border);
+    }
+    .acc-item.open .acc-body { display: block; }
+
+    /* ── Content elements inside acc-body ── */
+    .acc-body p { color: var(--muted); font-size: 0.9rem; margin-top: 14px; }
+    .acc-body h4 { font-size: 0.85rem; font-weight: 700; color: var(--accent); margin-top: 18px; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .acc-body ul, .acc-body ol { padding-left: 20px; color: var(--muted); font-size: 0.9rem; margin-top: 8px; }
+    .acc-body li { margin-bottom: 6px; }
+    .acc-body li strong { color: var(--text); }
+
+    .step {
+      display: flex; gap: 14px; margin-top: 12px; align-items: flex-start;
+    }
+    .step-num {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: var(--accent); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; font-weight: 800; flex-shrink: 0; margin-top: 2px;
+    }
+    .step-text { font-size: 0.9rem; color: var(--muted); }
+    .step-text strong { color: var(--text); }
+
+    .tip {
+      margin-top: 14px; padding: 12px 14px;
+      border-radius: 8px; font-size: 0.85rem;
+      display: flex; gap: 10px; align-items: flex-start;
+    }
+    .tip.blue   { background: rgba(79,142,247,0.1);  border: 1px solid rgba(79,142,247,0.25);  color: #8ab4f8; }
+    .tip.green  { background: rgba(46,204,113,0.1);  border: 1px solid rgba(46,204,113,0.25);  color: #7dce9f; }
+    .tip.orange { background: rgba(243,156,18,0.1);  border: 1px solid rgba(243,156,18,0.25);  color: #f5c060; }
+    .tip.red    { background: rgba(231,76,60,0.1);   border: 1px solid rgba(231,76,60,0.25);   color: #f1948a; }
+    .tip-icon { font-size: 1rem; flex-shrink: 0; }
+
+    .cmd {
+      display: inline-block;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 2px 8px;
+      font-family: monospace; font-size: 0.8rem; color: #a8d8ff;
+    }
+
+    .tag {
+      display: inline-block; border-radius: 4px; padding: 2px 8px;
+      font-size: 0.72rem; font-weight: 700;
+    }
+    .tag.blue   { background: rgba(79,142,247,0.15); color: var(--accent); }
+    .tag.green  { background: rgba(46,204,113,0.15); color: var(--success); }
+    .tag.orange { background: rgba(243,156,18,0.15); color: var(--warning); }
+    .tag.red    { background: rgba(231,76,60,0.15);  color: var(--danger); }
+
+    /* ── Contact card ── */
+    .contact-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 28px;
+      text-align: center; margin-top: 12px;
+    }
+    .contact-card h3 { font-size: 1.1rem; margin-bottom: 8px; }
+    .contact-card p { color: var(--muted); font-size: 0.9rem; }
+    .contact-card a {
+      display: inline-block; margin-top: 16px;
+      background: var(--accent); color: #fff;
+      padding: 12px 28px; border-radius: 8px;
+      text-decoration: none; font-weight: 700; font-size: 0.9rem;
+    }
+    .contact-card a:hover { opacity: 0.9; }
+
+    /* ── No-results ── */
+    #no-results {
+      text-align: center; color: var(--muted); padding: 40px;
+      display: none;
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center; padding: 32px 24px;
+      border-top: 1px solid var(--border);
+      color: var(--muted); font-size: 0.8rem;
+    }
+
+    @media (max-width: 600px) {
+      .hero h1 { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Hero ─────────────────────────────────────────────────────────────────── -->
+<div class="hero">
+  <div class="hero-icon">📡</div>
+  <h1>iCatcher <span>Scoreboard</span> Support</h1>
+  <p>Everything you need to set up, operate, and troubleshoot your LED scoreboard controller.</p>
+  <div class="hero-badges">
+    <span class="badge green">● v1.1.0</span>
+    <span class="badge">Android &amp; iOS</span>
+  </div>
+</div>
+
+<!-- ── Search ────────────────────────────────────────────────────────────────── -->
+<div class="search-wrap">
+  <input type="text" id="search" placeholder="🔍  Search topics — e.g. connect, timer, laptop mode…" />
+</div>
+
+<!-- ── Content ───────────────────────────────────────────────────────────────── -->
+<div class="container">
+  <div id="no-results">No topics matched your search. Try different keywords.</div>
+
+  <!-- ══ GETTING STARTED ════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-label">01</div>
+    <div class="section-header">
+      <div class="section-icon icon-green">🚀</div>
+      <h2>Getting Started</h2>
+    </div>
+    <div class="accordion">
+
+      <div class="acc-item" data-tags="connect wifi network setup first time">
+        <button class="acc-trigger">
+          <span class="acc-title">Connecting to the scoreboard for the first time</span>
+          <span class="acc-chevron">▼</span>
+        </button>
+        <div class="acc-body">
+          <h4>Requirements</h4>
+          <ul>
+            <li>Scoreboard controller powered on</li>
+            <li>Your phone connected to the <strong>same WiFi network</strong> as the scoreboard</li>
+            <li>Scoreboard controller IP: <span class="cmd">192.168.1.252</span> (factory default)</li>
+          </ul>
+          <h4>Steps</h4>
+          <div class="step"><div class="step-num">1</div><div class="step-text">Open the app → tap <strong>"🔌 Connect to Scoreboard"</strong> on the home screen.</div></div>
+          <div class="step"><div class="step-num">2</div><div class="step-text">The app sends a test ping. If successful the button changes to a green <strong>"Connected"</strong> banner.</div></div>
+          <div class="step"><div class="step-num">3</div><div class="step-text">If it fails, check your WiFi — both devices must be on the same subnet. Some routers use "client isolation" which blocks device-to-device traffic; disable it.</div></div>
+          <div class="tip blue"><span class="tip-icon">💡</span>No scoreboard? Tap <strong>Demo Mode</strong> to explore the app with simulated sending — safe to test everything.</div>
+        </div>
+      </div>
+
+      <div class="acc-item" data-tags="display size setup width height pixels configuration">
+        <button class="acc-trigger">
+          <span class="acc-title">Configuring your display size</span>
+          <span class="acc-chevron">▼</span>
+        </button>
+        <div class="acc-body">
+          <p>Go to <strong>Settings → PIXEL SIZE OF SCREEN</strong> and enter your scoreboard's physical pixel dimensions. This affects how text chunks are split across RAMT slots.</p>
+          <ul>
+            <li><strong>Width:</strong> 32–512 px (typical: 128 or 256)</li>
+            <li><strong>Height:</strong> 16–256 px (typical: 64 or 128)</li>
+            <li>Enable <strong>Ultra-wide</strong> if your display is double-width — doubles characters per slot.</li>
+            <li>Enable <strong>Single Colour</strong> for monochrome red displays — overrides all colour settings.</li>
+          </ul>
+          <div class="tip orange"><span class="tip-icon">⚠️</span>Wrong dimensions cause text to overflow or truncate. When in doubt, use the values printed on your scoreboard's manual.</div>
+        </div>
+      </div>
+
+      <div class="acc-item" data-tags="sport select choose afl cricket soccer rugby hockey basketball">
+        <button class="acc-trigger">
+          <span class="acc-title">Selecting a sport and starting a game</span>
+          <span class="acc-chevron">▼</span>
+        </button>
+        <div class="acc-body">
+          <div class="step"><div class="step-num">1</div><div class="step-text">Connect to the scoreboard (or enable Demo Mode).</div></div>
+          <div class="step"><div class="step-num">2</div><div class="step-text">Tap <strong>"Select Sport"</strong> → choose your sport: AFL, Soccer, Cricket, Rugby, Hockey, or Basketball.</div></div>
+          <div class="step"><div class="step-num">3</div><div class="step-text">Tap <strong>"Open Scoring"</strong> to enter the scoring screen. The scoreboard automatically switches to the correct layout.</div></div>
+          <div class="step"><div class="step-num">4</div><div class="step-text">Use the <strong>+</strong> / <strong>−</strong> buttons to adjust scores. Changes send to the scoreboard instantly.</div></div>
+          <div class="tip green"><span class="tip-icon">✅</span>Scores are saved automatically. If you leave and return, all values are restored — including after a phone restart.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ SCORING ════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-label">02</div>
+    <div class="section-header">
+      <div class="section-icon icon-blue">🏆</div>
+      <h2>Scoring &amp; Timer</h2>
+    </div>
+    <div class="accordion">
+
+      <div class="acc-item" data-tags="team names home away edit rename">
+        <button class="acc-trigger">
+          <span class="acc-title">Setting team names</span>
+          <span class="acc-chevron">▼</span>
+        </button>
+        <div class="acc-body">
+          <p>On any scoring screen, locate the <strong>Team Names</strong> card. Tap the text field for Home or Away and type the team name. Changes are sent to the scoreboard immediately and saved permanently.</p>
+          <ul>
+            <li>Tap the <strong>⚙</strong> icon (left of "Team Names") to adjust text size, colour, alignment, and vertical position.</li>
+            <li>Names survive sport changes and 12-hour auto-resets.</li>
+          </ul>
+          <div class="tip blue"><span class="tip-icon">💡</span>Keep names short (4–6 characters) for best display on smaller scoreboards. Long names are split across two RAMT slots.</div>
+        </div>
+      </div>
+
+      <div class="acc-item" data-tags="timer clock start stop reset countdown count up set time">
+        <button class="acc-trigger">
+          <span class="acc-title">Using the game timer</span>
+          <span class="acc-chevron">▼</span>
+        </button>
+        <div class="acc-body">
+          <h4>Basic controls</h4>
+          <ul>
+            <li><strong>▶ / ⏸</strong> — Start / pause the timer</li>
+            <li><strong>⏹</strong> — Stop and reset</li>
+            <li><strong>Set Time</strong> button — Enter a specific time (MM:SS)</li>
+          </ul>
+          <h4>Timer direction</h4>
+          <ul>
+            <li><strong>Count up</strong> — starts at 00:00, counts upward</li>
+            <li><strong>Count down</strong> — set a target time (e.g. 20:00), counts down to 00:00</li>
+          </ul>
+          <p>Tap the <strong>⚙</strong> icon to change display size, colour, alignment, and the <strong>Shift to Right</strong> (leading spaces) setting.</p>
+          <div class="tip orange"><span class="tip-icon">⚠️</span>In <strong>Laptop Mode</strong> the timer uses hardware channels on the controller instead of software. See the Laptop Mode section for details.</div>
+        </div>
+      </div>
+
+      <div class="acc-item" data-tags="shot clock basketball hockey reset 24 30 seconds">
+        <button class="acc-trigger">
+          <span class="acc-title">Shot clock (Basketball &amp; Hockey)</span>
+          <span class="acc-chevron">▼</span>
+        </button>
+        <div class="acc-body">
+          <p>The shot clock card appears on Basketball and Hockey scoring screens. It operates independently from the main timer.</p>
+          <ul>
+            <li>Tap <strong>Set Time</strong> to enter a custom shot clock duration.</li>
+            <li>Use <strong>▶ / ⏸</strong> to start and stop.</li>
+            <li>Tap <strong>⏹</strong> to reset to the default duration.</li>
+          </ul>
+          <div class="tip blue"><span class="tip-icon">💡</span>Default shot clock: Basketball = 24s, Hockey = 40s. Change it via <strong>Set Time</strong> and it will be remembered.</div>
+        </div>
+      </div>
+
+      <div class="acc-item" data-tags="afl quarter score goals points total">
+        <button class="acc-trigger">
+          <span class="acc-title">AFL scoring — goals, points, totals &amp; quarter</span>
+          <span class="acc-chevron">▼</span>
+        </button>
+        <div class="acc-body">
+          <p>The AFL screen shows separate buttons for <strong>Goals</strong> and <strong>Points</strong> for each team. The total is calculated automatically.</p>
+          <ul>
+            <li><strong>Goals</strong> are worth 6 points each.</li>
+            <li><strong>Points</strong> (behinds) are worth 1 point each.</li>
+            <li>The <strong>Quarter</strong> widget lets you set the current quarter (1–4).</li>
+            <li>Tap <strong>⚙</strong> next to "Quarter" to style the quarter display on the scoreboard.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="acc-item" data-tags="cricket runs wickets extras overs balls score">
+        <button class="acc-trigger">
+          <span class="acc-title">Cricket scoring — runs, wickets, extras &amp; overs</span>
+          <span class="acc-chevron">▼</span>
+        </button>
+        <div class="acc-body">
+          <p>The Cricket screen has individual counters for each stat. Use + / − to adjust each field:</p>
+          <ul>
+            <li><strong>Runs</strong> — home and away team run totals</li>
+            <li><strong>Wickets</strong> — wickets lost (0–10)</li>
+            <li><strong>Extras</strong> — wides, no-balls, byes, leg-byes</li>
+            <li><strong>Overs</strong> — current over count</li>
+          </ul>
+          <div class="tip green"><span class="tip-icon">✅</span>Balls progress inside an over automatically if you enable it via Remapping settings.</div>
+        </div>
+      </div>
+
+      <div class="acc-item" data-tags="12 hour auto reset scores midnight inactivity">
+        <button class="acc-trigger">
+          <span class="acc-title">Automatic 12-hour score reset</span>
+          <span class="acc-chevron">▼</span>
+        </button>
+        <div class="acc-body">
+          <p>If the app has not been used for more than <strong>12 hours</strong>, all live game scores are automatically reset to zero the next time the app opens.</p>
+          <ul>
+            <li>Scores reset: all sport scores, timer, timeouts, fouls, etc.</li>
+            <li><strong>Not reset:</strong> team names, styles, settings, ads, configurations — everything else is preserved.</li>
+            <li>The 12-hour clock resets every time you use the app, so mid-game sessions are safe.</li>
+          </ul>
+          <div class="tip orange"><span class="tip-icon">⚠️</span>This is intentional — it prevents old scores from a previous day's game accidentally appearing on the board when you open the app the next morning.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ ADVERTISEMENTS ════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-label">03</div>
+    <div class="section-header">
+      <div class="section-icon icon-orange">📢</div>
+      <h2>Advertisements</h2>
+    </div>
+    <div class="accordion">
+
+      <div class="acc-item" data-tags="ads advertisements create edit add row text colour size">
+        <button class="acc-trigger">
+          <span class="acc-title">Creating and editing advertisements</span>
+          <span class="acc-chevron">▼</span>
+        </button>
+        <div class="acc-body">
+          <div class="step"><div class="step-num">1</div><div class="step-text">From the home screen tap <strong>"Manage"</strong> → go to the <strong>ADVERTISEMENTS</strong> section.</div></div>
+          <div class="step"><div class="step-num">2</div><div class="step-text">Tap <strong>"+ New Ad"</strong> to create a new advertisement.</div></div>
+          <div class="step"><div class="step-num">3</div><div class="step-text">Choose the number of rows (1–4) and whether to show a border.</div></div>
+          <div class="step"><div class="step-num">4</div><div class="step-text">For each row, enter the text and set size, colour, and alignment.</div></div>
+          <div class="step"><div class="step-num">5</div><div class="step-text">Tap the <strong>✏️ pencil</strong> icon on any ad to rename it. All ads save permanently to your device.</div></div>
+          <div class="tip blue"><span class="tip-icon">💡</span>Ads are saved on your device indefinitely — they survive app updates, mode switches, and score resets.</div>
+        </div>
+      </div>
+
+      <div class="acc-item" data-tags="ads play loop rotation return scores">
+        <button class="acc-trigger">
+          <span class="acc-title">Playing ads and returning to scores</span>
+          <span class="acc-chevron">▼</span>
+        </button>
+        <div class="acc-body">
+          <p>From the <strong>ADVERTISEMENTS</strong> card on the scoring/manage screen:</p>
+          <ul>
+            <li>Select which ads to include by tapping them (they highlight when selected).</li>
+            <li>Tap <strong>"Play Ads"</strong> — the scoreboard cycles through selected ads.</li>
+            <li>Tap <strong>"Return to Scores"</strong> to switch the scoreboard back to the current sport layout.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="acc-item" data-tags="laptop ads ad1 ad2 ad3 ad4 ad5 page duration">
+        <button class="acc-trigger">
+          <span class="acc-title">Laptop Mode advertisements (Ad1–Ad5)</span>
+          <span class="acc-chevron">▼</span>
+        </button>
+        <div class="acc-body">
+          <p>In Laptop Mode, advertisements are fixed slots <strong>Ad1–Ad5</strong> that correspond to pages pre-programmed in iCatcher Laptop software. Each ad slot has:</p>
+          <ul>
+            <li><strong>Duration</strong> — how many seconds to show this ad before cycling to the next</li>
+            <li><strong>Enable/Disable toggle</strong> — include or exclude this slot from the rotation</li>
+            <li><strong>Custom name</strong> — tap the ✏️ icon to rename each slot (e.g. "Sponsor 1")</li>
+            <li><strong>Page mapping</strong> — configure which scoreboard page each ad switches to (see Page Mapping section)</li>
+          </ul>
+          <div class="tip orange"><span class="tip-icon">⚠️</span>The page each ad displays must be pre-configured in iCatcher Laptop. The app just sends the page switch command.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ LAPTOP MODE ════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-label">04</div>
+    <div class="section-header">
+      <div class="section-icon icon-purple">💻</div>
+      <h2>Laptop Mode</h2>
+    </div>
+    <div class="accordion">
+
+      <div class="acc-item" data-tags="laptop mode enable what is icatcher software counter timer special area commands">
+        <button class="acc-trigger">
+          <span class="acc-title">What is Laptop Mode and when to use it</span>
+          <span class="acc-chevron">▼</span>
+        </button>
+        <div class="acc-body">
+          <p>Laptop Mode is for setups where an <strong>iCatcher Laptop</strong> computer is the primary controller of the scoreboard's display. In this mode:</p>
+          <ul>
+            <li>The app sends <strong>counter commands</strong> to the hardware counters — iCatcher Laptop reads these and updates its own display.</li>
+            <li>The app sends <strong>hardware timer commands</strong> instead of software special area timer sends.</li>
+            <li>RAMT slot assignments are irrelevant — the laptop handles layout.</li>
+          </ul>
+          <div class="tip blue"><span class="tip-icon">💡</span>If you use iCatcher Scoreboard in standalone mode (no laptop), keep Laptop Mode OFF.</div>
+        </div>
+      </div>
+
+      <div class="acc-item" data-tags="laptop enable settings toggle">
+        <button class="acc-trigger">
+          <span class="acc-title">Enabling Laptop Mode</span>
+          <span class="acc-chevron">▼</span>
+        </button>
+        <div class="acc-body">
+          <div class="step"><div class="step-num">1</div><div class="step-text">Tap the <strong>⚙ Settings</strong> button on the home screen.</div></div>
+          <div class="step"><div class="step-num">2</div><div class="step-text">Under <strong>SCORING MODE</strong>, toggle <strong>Laptop Scoring Mode</strong> ON.</div></div>
+          <div class="step"><div class="step-num">3</div><div class="step-text">Tap <strong>Save</strong>. The app restarts its sport session.</div></div>
+          <div class="step"><div class="step-num">4</div><div class="step-text">A <strong>"Page Mapping"</strong> button appears below the toggle — use this to map each sport and ad to a specific scoreboard page.</div></div>
+        </div>
+      </div>
+
+      <div class="acc-item" data-tags="page mapping laptop sport ad page number">
+        <button class="acc-trigger">
+          <span class="acc-title">Page Mapping — sport and ad page numbers</span>
+          <span class="acc-chevron">▼</span>
+        </button>
+        <div class="acc-body">
+          <p>Page Mapping lets you configure which scoreboard page each sport and ad slot switches to when selected.</p>
+          <div class="tip red"><span class="tip-icon">⚠️</span><strong>Do not change these settings unless specifically instructed to do so.</strong> Incorrect mapping will display the wrong content on the scoreboard.</div>
+          <h4>Sports</h4>
+          <ul>
+            <li>Options: <span class="tag blue">— (none)</span>, <span class="tag blue">0–6</span></li>
+            <li><strong>—</strong> = don't send a page switch when entering this sport</li>
+            <li>Default: all sports → page 0</li>
+          </ul>
+          <h4>Advertisements (Ad1–Ad5)</h4>
+          <ul>
+            <li>Options: <span class="tag orange">— (none)</span>, <span class="tag orange">0–10</span></li>
+            <li><strong>—</strong> = don't switch pages when this ad slot plays</li>
+            <li>Default: Ad1→1, Ad2→2, Ad3→3, Ad4→4, Ad5→5</li>
+          </ul>
+          <p>Tap <strong>Save</strong> to apply. Tap <strong>Reset Defaults</strong> to revert to factory settings.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ ADVANCED ═══════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-label">05</div>
+    <div class="section-header">
+      <div class="section-icon icon-blue">⚙️</div>
+      <h2>Advanced Settings</h2>
+    </div>
+    <div class="accordion">
+
+      <div class="acc-item" data-tags="remapping mode counter channels hardware reassign">
+        <button class="acc-trigger">
+          <span class="acc-title">Remapping Mode — counter channels &amp; display slots</span>
+          <span class="acc-chevron">▼</span>
+        </button>
+        <div class="acc-body">
+          <p>Remapping Mode allows you to reassign which hardware counter slots and RAMT display slots each field uses.</p>
+          <h4>Enabling</h4>
+          <div class="step"><div class="step-num">1</div><div class="step-text">Settings → <strong>ADVANCED</strong> → toggle <strong>Remapping Mode</strong> ON. This adds a <strong>"Remapping"</strong> button to each sport screen's top bar.</div></div>
+          <div class="step"><div class="step-num">2</div><div class="step-text">Enter a sport screen → tap <strong>Remapping</strong> to open the mapping page for that sport.</div></div>
+          <h4>Counter Channels (Counter Commands)</h4>
+          <p>Assigns which hardware counter slot (1–6) receives each score value. Select the channel number next to each field name.</p>
+          <h4>Special Area Display Slots (normal mode only)</h4>
+          <p>Assigns which LED board display slots (1–8) each element occupies. Every position can be set independently — they do not need to be consecutive.</p>
+          <ul>
+            <li><strong>Home/Away Team Name:</strong> 2 slots each (Part 1, Part 2)</li>
+            <li><strong>Timer:</strong> 3 slots (Slot 1, Slot 2, Slot 3)</li>
+            <li><strong>Shot Clock / AFL Quarter:</strong> 1 slot</li>
+          </ul>
+          <h4>Timer Channels (laptop mode only)</h4>
+          <p>Select which hardware timer channel (Ch 1–4) drives the game timer and shot clock.</p>
+          <div class="tip orange"><span class="tip-icon">⚠️</span>Always tap <strong>Save</strong> before leaving the Remapping screen — changes are not applied until saved.</div>
+        </div>
+      </div>
+
+      <div class="acc-item" data-tags="udp timing command delay speed fast slow latency">
+        <button class="acc-trigger">
+          <span class="acc-title">UDP Timing — adjusting command speed</span>
+          <span class="acc-chevron">▼</span>
+        </button>
+        <div class="acc-body">
+          <p>Settings → <strong>ADVANCED</strong> → <strong>UDP Timing</strong></p>
+          <h4>Command Delay</h4>
+          <p>The gap between consecutive UDP commands sent to the scoreboard. Lower = faster. Default: <strong>120 ms</strong>.</p>
+          <ul>
+            <li>Reduce if you want faster score updates</li>
+            <li>Increase if you notice commands being dropped or out-of-order</li>
+            <li>Use the slider (0–120 ms) or type any value directly in the text field</li>
+          </ul>
+          <h4>Boot Init Delay</h4>
+          <p>How long the app waits after zeroing counters before sending real scores when entering a sport screen. Default: <strong>500 ms</strong>.</p>
+          <ul>
+            <li>Increase if you see random old numbers flash briefly when opening a sport</li>
+            <li>Decrease or set to 0 to skip the delay if your hardware is fast</li>
+          </ul>
+          <div class="tip blue"><span class="tip-icon">💡</span>Both sliders show 0 to the default value (safe maximum). You can type a higher value in the text field if needed. Tap <strong>Save</strong> to apply.</div>
+        </div>
+      </div>
+
+      <div class="acc-item" data-tags="reset settings all factory defaults clear">
+        <button class="acc-trigger">
+          <span class="acc-title">Resetting all settings to factory defaults</span>
+          <span class="acc-chevron">▼</span>
+        </button>
+        <div class="acc-body">
+          <p>Settings → scroll to bottom → <strong>"Reset All Settings"</strong></p>
+          <div class="tip red"><span class="tip-icon">⚠️</span><strong>This resets everything</strong> — display size, styles, RAMT slots, counter channels, UDP timing, page mapping, and scores. Your advertisements are preserved. This action cannot be undone.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ TROUBLESHOOTING ════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-label">06</div>
+    <div class="section-header">
+      <div class="section-icon icon-red">🛠</div>
+      <h2>Troubleshooting</h2>
+    </div>
+    <div class="accordion">
+
+      <div class="acc-item" data-tags="cant connect connection failed not connecting timeout network">
+        <button class="acc-trigger">
+          <span class="acc-title">Can't connect to the scoreboard</span>
+          <span class="acc-chevron">▼</span>
+        </button>
+        <div class="acc-body">
+          <h4>Check these in order</h4>
+          <div class="step"><div class="step-num">1</div><div class="step-text"><strong>Same WiFi network?</strong> Your phone and the scoreboard controller must be on the same WiFi. Check your phone's WiFi settings.</div></div>
+          <div class="step"><div class="step-num">2</div><div class="step-text"><strong>Controller IP correct?</strong> The factory default IP is <span class="cmd">192.168.1.252</span>. If your router has changed it, check the controller's network settings or your router's DHCP table.</div></div>
+          <div class="step"><div class="step-num">3</div><div class="step-text"><strong>Client isolation disabled?</strong> Some routers (especially guest networks) block devices from communicating with each other. Disable "AP Isolation" or "Client Isolation" in your router settings.</div></div>
+          <div class="step"><div class="step-num">4</div><div class="step-text"><strong>Controller powered on?</strong> The controller must be fully booted. Try power-cycling it and waiting 30 seconds.</div></div>
+          <div class="step"><div class="step-num">5</div><div class="step-text"><strong>Firewall?</strong> The app communicates on UDP port <span class="cmd">5959</span>. Ensure no firewall is blocking this port.</div></div>
+          <div class="tip blue"><span class="tip-icon">💡</span>Use Demo Mode to verify all app features work correctly while you resolve network issues.</div>
+        </div>
+      </div>
+
+      <div class="acc-item" data-tags="wrong numbers flash glitch random scores appear sport switch">
+        <button class="acc-trigger">
+          <span class="acc-title">Random numbers appear briefly when opening a sport</span>
+          <span class="acc-chevron">▼</span>
+        </button>
+        <div class="acc-body">
+          <p>This is caused by the scoreboard still showing counter values from a previously used sport. The app zeroes all counters first and then sends the correct values, but if your hardware is slow you may see a brief flash.</p>
+          <h4>Fix</h4>
+          <p>Go to <strong>Settings → ADVANCED → UDP Timing</strong> and <strong>increase the Boot Init Delay</strong> (e.g. from 500 ms to 800–1000 ms). This gives the hardware more time to process the zeroing before real scores are sent.</p>
+        </div>
+      </div>
+
+      <div class="acc-item" data-tags="text cut off truncated missing overflow slots">
+        <button class="acc-trigger">
+          <span class="acc-title">Text is cut off or not displaying fully on the board</span>
+          <span class="acc-chevron">▼</span>
+        </button>
+        <div class="acc-body">
+          <ul>
+            <li><strong>Wrong display size:</strong> Go to Settings and verify Width × Height match your board's actual pixel dimensions.</li>
+            <li><strong>Text size too large:</strong> Tap the <strong>⚙</strong> gear next to the Team Names or Timer widget and reduce the size setting.</li>
+            <li><strong>RAMT slots overlap:</strong> If you've customised slot assignments in Remapping, ensure no two elements share the same slot numbers.</li>
+            <li><strong>Ultra-wide not enabled:</strong> If your board is double-width, enable Ultra-wide in Settings.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="acc-item" data-tags="scoreboard not updating commands not sending slow delay">
+        <button class="acc-trigger">
+          <span class="acc-title">Scoreboard is not updating / commands seem slow</span>
+          <span class="acc-chevron">▼</span>
+        </button>
+        <div class="acc-body">
+          <ul>
+            <li><strong>Check connection:</strong> The green "Connected" banner must be visible on the home screen. If not, reconnect.</li>
+            <li><strong>UDP queue:</strong> Commands are queued and sent one at a time with a small delay between each. This is normal — the scoreboard hardware processes them sequentially.</li>
+            <li><strong>Reduce command delay:</strong> Settings → ADVANCED → UDP Timing → lower the Command Delay slider toward 0 ms.</li>
+            <li><strong>WiFi congestion:</strong> Move closer to your WiFi router or switch to a 5 GHz band if available.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="acc-item" data-tags="settings lost reset disappeared update app version">
+        <button class="acc-trigger">
+          <span class="acc-title">Settings or ads disappeared after an app update</span>
+          <span class="acc-chevron">▼</span>
+        </button>
+        <div class="acc-body">
+          <p>From v1.1.0 onwards, all data is saved in <strong>two locations</strong> on your device:</p>
+          <ul>
+            <li><strong>Primary:</strong> A JSON file in the app's documents directory — survives all app updates indefinitely</li>
+            <li><strong>Backup:</strong> SharedPreferences — legacy location, also survives updates</li>
+          </ul>
+          <p>If you're on an older version and upgraded, the app automatically migrates your data from the old location to the new one on first launch.</p>
+          <div class="tip red"><span class="tip-icon">⚠️</span>Data is only lost if you <strong>uninstall the app</strong> or manually <strong>"Clear App Data"</strong> in Android settings. Updates alone do not clear data.</div>
+        </div>
+      </div>
+
+      <div class="acc-item" data-tags="demo mode bypass no connection offline testing">
+        <button class="acc-trigger">
+          <span class="acc-title">Using Demo Mode (no scoreboard required)</span>
+          <span class="acc-chevron">▼</span>
+        </button>
+        <div class="acc-body">
+          <p>Demo Mode lets you use all app features without a physical scoreboard. Commands are still built and would be sent, but no hardware is required.</p>
+          <div class="step"><div class="step-num">1</div><div class="step-text">On the home screen, tap the <strong>"Demo Mode"</strong> button (left of the ℹ️ button).</div></div>
+          <div class="step"><div class="step-num">2</div><div class="step-text">The connection area shows a red <strong>"Demo Mode (No Connection)"</strong> banner.</div></div>
+          <div class="step"><div class="step-num">3</div><div class="step-text">All scoring, timer, and advertisement features work normally.</div></div>
+          <div class="step"><div class="step-num">4</div><div class="step-text">Tap <strong>"Exit Demo"</strong> to return to normal mode.</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ CONTACT ════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-label">07</div>
+    <div class="section-header">
+      <div class="section-icon icon-green">📬</div>
+      <h2>Contact Support</h2>
+    </div>
+    <div class="contact-card">
+      <h3>Still need help?</h3>
+      <p>If you've worked through the troubleshooting steps above and still have an issue,<br>reach out and we'll get back to you as soon as possible.</p>
+      <a href="mailto:joy.zen9104@eagereverest.com">✉️  joy.zen9104@eagereverest.com</a>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Footer ──────────────────────────────────────────────────────────────── -->
+<footer>
+  <p>iCatcher Scoreboard Control &nbsp;•&nbsp; v1.1.0 &nbsp;•&nbsp; © 2026 iCatcher Digital Signs. All rights reserved.</p>
+</footer>
+
+<!-- ── Script ──────────────────────────────────────────────────────────────── -->
+<script>
+  // Accordion toggle
+  document.querySelectorAll('.acc-trigger').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = btn.closest('.acc-item');
+      const wasOpen = item.classList.contains('open');
+      // Close all in same accordion
+      item.closest('.accordion').querySelectorAll('.acc-item.open').forEach(i => i.classList.remove('open'));
+      if (!wasOpen) item.classList.add('open');
+    });
+  });
+
+  // Search / filter
+  const searchInput = document.getElementById('search');
+  const noResults   = document.getElementById('no-results');
+
+  searchInput.addEventListener('input', () => {
+    const query = searchInput.value.trim().toLowerCase();
+    let anyVisible = false;
+
+    document.querySelectorAll('.acc-item').forEach(item => {
+      const title = item.querySelector('.acc-title').textContent.toLowerCase();
+      const tags  = (item.dataset.tags || '').toLowerCase();
+      const body  = item.querySelector('.acc-body').textContent.toLowerCase();
+      const match = !query || title.includes(query) || tags.includes(query) || body.includes(query);
+      item.classList.toggle('hidden', !match);
+      if (match) anyVisible = true;
+    });
+
+    // Show/hide section containers based on whether any child is visible
+    document.querySelectorAll('.section').forEach(sec => {
+      const visible = [...sec.querySelectorAll('.acc-item')].some(i => !i.classList.contains('hidden'));
+      sec.style.display = visible ? '' : 'none';
+    });
+
+    noResults.style.display = (query && !anyVisible) ? 'block' : 'none';
+  });
+
+  // Auto-open first item on load
+  const first = document.querySelector('.acc-item');
+  if (first) first.classList.add('open');
+</script>
+</body>
+</html>
