@@ -198,6 +198,25 @@
       display: none;
     }
 
+    /* ── Top nav ── */
+    .topnav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex; align-items: center; gap: 16px;
+    }
+    .topnav a {
+      color: var(--accent); text-decoration: none; font-size: 0.9rem;
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 8px;
+      border: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+    .topnav a:hover { background: var(--card); }
+    .topnav-links { margin-left: auto; display: flex; gap: 8px; }
+    .topnav-links a { border: none; color: var(--muted); font-size: 0.82rem; }
+    .topnav-links a:hover { color: var(--text); background: var(--card); }
+
     /* ── Footer ── */
     footer {
       text-align: center; padding: 32px 24px;
@@ -211,6 +230,15 @@
   </style>
 </head>
 <body>
+
+<!-- ── Top Nav ───────────────────────────────────────────────────────────────── -->
+<nav class="topnav">
+  <a href="index.html">← Main Menu</a>
+  <div class="topnav-links">
+    <a href="privacy-policy.html">Privacy Policy</a>
+    <a href="terms-of-service.html">Terms of Service</a>
+  </div>
+</nav>
 
 <!-- ── Hero ─────────────────────────────────────────────────────────────────── -->
 <div class="hero">

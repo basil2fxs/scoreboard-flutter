@@ -57,21 +57,39 @@
       font-size: 13px;
       color: #505570;
     }
-    .nav { margin-bottom: 32px; }
-    .nav a { font-size: 13px; color: #4c6ef5; margin-right: 20px; }
+    .topnav {
+      background: #12141f;
+      border-bottom: 1px solid #1e2230;
+      padding: 12px 24px;
+      display: flex; align-items: center; gap: 16px;
+      margin-bottom: 0;
+    }
+    .topnav a {
+      color: #4c6ef5; text-decoration: none; font-size: 0.9rem;
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 8px;
+      border: 1px solid #1e2230;
+      transition: background 0.15s;
+    }
+    .topnav a:hover { background: #1a1d2e; text-decoration: none; }
+    .topnav-links { margin-left: auto; display: flex; gap: 8px; }
+    .topnav-links a { border: none; color: #505570; font-size: 0.82rem; }
+    .topnav-links a:hover { color: #a0a8c0; background: #1a1d2e; }
   </style>
 </head>
 <body>
+
+<nav class="topnav">
+  <a href="index.html">← Main Menu</a>
+  <div class="topnav-links">
+    <a href="support.html">Support</a>
+    <a href="terms-of-service.html">Terms of Service</a>
+  </div>
+</nav>
+
 <div class="wrap">
 
   <div class="badge">Legal</div>
-
-  <div class="nav">
-    <a href="index.html">Home</a>
-    <a href="support.html">Support</a>
-    <a href="privacy-policy.html">Privacy Policy</a>
-    <a href="terms-of-service.html">Terms of Service</a>
-  </div>
 
   <h1>Privacy Policy</h1>
   <p class="subtitle">Scoreboard Control &mdash; Effective Date: 18 March 2026</p>
